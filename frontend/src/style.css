@@ -1152,15 +1152,16 @@ input[type="color"]::-webkit-color-swatch {
 
 .tab-body {
     flex: 1;
+    width: 100%;
     background: var(--bg-panel);
     border: 1px solid var(--border-color);
-    /* The rectangle box */
     border-top: none;
-    /* Header covers top */
     padding: 10px;
     position: relative;
-    min-height: 0;
+    min-height: calc(100% - 42px);
+    /* 탭 헤더 높이(약 42px)를 뺀 나머지 */
     overflow: auto;
+    box-sizing: border-box;
 }
 
 /* Drop zone indicator for Tab Body */

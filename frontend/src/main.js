@@ -1303,34 +1303,6 @@ function setTextAlignment(align) {
     updateElementDOM(element);
 }
 
-function updateElementParent() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
-    if (!element) return;
-
-    const newParentId = document.getElementById('elem-parent').value || null;
-
-    // Remove from old parent's children
-    if (element.parentId) {
-        const oldParent = getElementData(element.parentId);
-        if (oldParent && oldParent.children) {
-            oldParent.children = oldParent.children.filter(id => id !== element.id);
-        }
-    }
-
-    // Add to new parent's children
-    element.parentId = newParentId;
-    if (newParentId) {
-        const newParent = getElementData(newParentId);
-        if (newParent) {
-            newParent.children = newParent.children || [];
-            if (!newParent.children.includes(element.id)) {
-                newParent.children.push(element.id);
-            }
-        }
-    }
-}
-
 function updateTableSize() {
     if (!state.selectedElement) return;
     const element = getElementData(state.selectedElement);
@@ -1437,18 +1409,68 @@ function updateParentSelector() {
     // Add container elements as options
     state.design.elements.forEach(el => {
         if (containerTypes.includes(el.type) && el.id !== currentId) {
-            const option = document.createElement('option');
-            option.value = el.id;
-            option.textContent = `${el.name || el.type} (${el.type})`;
-            select.appendChild(option);
+            if (el.type === 'tab') {
+                // Tab: list each tab separately
+                const tabs = el.properties?.tabs || [{ label: '탭1' }, { label: '탭2' }, { label: '탭3' }];
+                tabs.forEach((tab, index) => {
+                    const option = document.createElement('option');
+                    option.value = `${el.id}:${index}`; // "elementId:tabIndex" format
+                    option.textContent = `${el.name || 'tab'}(${index + 1})`;
+                    select.appendChild(option);
+                });
+            } else {
+                // Other containers: list as-is
+                const option = document.createElement('option');
+                option.value = el.id;
+                option.textContent = `${el.name || el.type} (${el.type})`;
+                select.appendChild(option);
+            }
         }
     });
 
     // Set current value
     const element = getElementData(currentId);
     if (element) {
-        select.value = element.parentId || '';
+        if (element.parentId && element.parentTabIndex !== undefined) {
+            select.value = `${element.parentId}:${element.parentTabIndex}`;
+        } else {
+            select.value = element.parentId || '';
+        }
     }
+}
+
+function updateElementParent(e) {
+    if (!state.selectedElement) return;
+    const element = getElementData(state.selectedElement);
+    if (!element) return;
+
+    const value = e.target.value;
+
+    if (value === '') {
+        // No parent
+        element.parentId = null;
+        element.parentTabIndex = undefined;
+    } else if (value.includes(':')) {
+        // Tab format: "elementId:tabIndex"
+        const [parentId, tabIndex] = value.split(':');
+        element.parentId = parentId;
+        element.parentTabIndex = parseInt(tabIndex);
+    } else {
+        // Regular container
+        element.parentId = value;
+        element.parentTabIndex = undefined;
+    }
+
+    // Update visibility if parent is a tab
+    if (element.parentId) {
+        const parent = getElementData(element.parentId);
+        if (parent && parent.type === 'tab') {
+            updateTabChildrenVisibility(element.parentId);
+        }
+    }
+
+    updateElementDOM(element);
+    saveToHistory();
 }
 
 function updateCanvasFromInput() {
