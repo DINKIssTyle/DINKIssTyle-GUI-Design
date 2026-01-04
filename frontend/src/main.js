@@ -9,7 +9,16 @@ const state = {
             height: 600,
             flexible: false,
             title: 'New Design',
+            title: 'New Design',
             bgColor: '#2a2a3e'
+        },
+        settings: {
+            windowBg: '#2a2a3e',
+            componentBg: '#ffffff',
+            componentText: '#e8e8f0',
+            inputBg: '#333344',
+            inputText: '#ffffff',
+            componentBgTransparent: false
         },
         elements: []
     },
@@ -92,6 +101,7 @@ function init() {
     setupCanvasEvents();
     setupPropertyEvents();
     setupZoomEvents();
+    setupSettingsEvents();
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
@@ -130,10 +140,11 @@ function setupToolbarEvents() {
     document.getElementById('btn-new').addEventListener('click', newDesign);
     document.getElementById('btn-save').addEventListener('click', saveDesign);
     document.getElementById('btn-load').addEventListener('click', loadDesign);
-    document.getElementById('btn-export-json').addEventListener('click', exportJSON);
-    document.getElementById('btn-export-xml').addEventListener('click', exportXML);
     document.getElementById('btn-undo').addEventListener('click', undo);
     document.getElementById('btn-redo').addEventListener('click', redo);
+    document.getElementById('btn-settings').addEventListener('click', openSettingsModal);
+    document.getElementById('btn-export-json').addEventListener('click', exportJSON);
+    document.getElementById('btn-export-xml').addEventListener('click', exportXML);
 }
 
 async function newDesign() {
@@ -223,12 +234,32 @@ async function loadDesign() {
 }
 
 function applyLoadedDesign(design) {
-    state.design = design;
+    // Compatibility for new JSON format (Window/Components)
+    if (design.Window || design.Components) {
+        state.design = {
+            canvas: design.Window || state.design.canvas,
+            elements: design.Components || [],
+            settings: design.settings || state.design.settings // Include settings if available
+        };
+    } else {
+        // Legacy format
+        state.design = design;
+    }
+
     state.selectedElement = null;
-    state.elementCounter = design.elements?.length || 0;
+    state.elementCounter = state.design.elements?.length || 0;
+
+    // Ensure element IDs are strings (legacy fix) or unique? 
+    // Just in case, let's keep max ID counter sync.
+    // Logic to find max ID suffix number if needed, but not critical for simple load.
+
     clearCanvas();
     renderElementsFromState();
     updateCanvasFromState();
+
+    // Re-apply global settings if any?
+    // Settings are lazy loaded usually.
+
     setStatus('불러오기 완료');
 }
 
@@ -249,8 +280,57 @@ async function exportJSON() {
     }
 
     // Browser fallback
-    downloadFile(JSON.stringify(state.design, null, 2), 'gui_design.json', 'application/json');
+    const jsonStr = JSON.stringify(designToJSON(state.design), null, 2);
+    downloadFile(jsonStr, 'gui_design.json', 'application/json');
     setStatus('JSON 내보내기 완료 (다운로드)');
+}
+
+function designToJSON(design) {
+    // 1. Window Properties
+    const windowProps = {
+        title: design.canvas.title,
+        width: design.canvas.width,
+        height: design.canvas.height,
+        bgColor: design.canvas.bgColor,
+        description: design.canvas.description || "",
+        flexible: design.canvas.flexible
+    };
+
+    // 2. Components
+    const components = design.elements.map(el => {
+        // Basic properties
+        const comp = {
+            id: el.id,
+            type: el.type,
+            name: el.name,
+            description: el.description || "",
+            x: el.x,
+            y: el.y,
+            width: el.width,
+            height: el.height,
+            parentId: el.parentId || null,
+            parentTabIndex: el.parentTabIndex
+        };
+
+        // Flatten properties
+        // Merge element.properties into the component object directly or under 'properties' key?
+        // User asked for "font properties, button properties (e.g. color) to be included".
+        // Let's put them under a 'properties' key but ensure ALL values are there.
+        comp.properties = { ...el.properties };
+
+        // Ensure Specific Defaults if missing (consistency)
+        if (el.type === 'button') {
+            if (!comp.properties.bgColor) comp.properties.bgColor = state.design.settings?.componentBgColor || '#667eea'; // fallback
+            if (!comp.properties.fontColor) comp.properties.fontColor = state.design.settings?.componentTextColor || '#ffffff';
+        }
+
+        return comp;
+    });
+
+    return {
+        Window: windowProps,
+        Components: components
+    };
 }
 
 async function exportXML() {
@@ -369,20 +449,6 @@ function designToXML(design) {
             if (el.properties.fullWidth) result += `${indent}    <FullSize>true</FullSize>\n`;
         }
 
-        result += `${indent}  </properties>\n`;
-
-        // Children (hierarchy)
-        if (el.children && el.children.length > 0) {
-            result += `${indent}  <children>\n`;
-            el.children.forEach(childId => {
-                const child = design.elements.find(e => e.id === childId);
-                if (child) {
-                    result += renderElement(child, indent + '    ');
-                }
-            });
-            result += `${indent}  </children>\n`;
-        }
-
         result += `${indent}  </Properties>\n`;
 
         // Children (hierarchy)
@@ -400,10 +466,6 @@ function designToXML(design) {
         result += `${indent}</Component>\n`;
         return result;
     }
-
-    rootElements.forEach(el => {
-        xml += renderElement(el);
-    });
 
     rootElements.forEach(el => {
         xml += renderElement(el);
@@ -577,7 +639,8 @@ function addElementToCanvas(type, x, y, parentId = null) {
             textAlign: 'center',
             // Font properties
             fontSize: 14,
-            fontColor: '#e8e8f0',
+            fontSize: 14,
+            fontColor: null,
             fontBold: false,
             fontItalic: false,
             // Background color
@@ -644,8 +707,24 @@ function createElementDOM(element) {
     applyFontStyles(el, element);
 
     // Apply background color
-    if (element.properties?.bgColor) {
+    // Apply background color
+    const settings = state.design.settings || {};
+    if (element.properties?.bgNone) {
+        el.style.backgroundColor = 'transparent';
+    } else if (element.properties?.bgColor) {
         el.style.backgroundColor = element.properties.bgColor;
+    } else {
+        // Apply Setting Defaults
+        if (['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
+            el.style.backgroundColor = settings.inputBg || '#333344';
+        } else if (settings.componentBgTransparent && !['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
+            el.style.backgroundColor = 'transparent';
+        } else if (!settings.componentBgTransparent && !['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
+            el.style.backgroundColor = settings.componentBg || '#ffffff';
+            if (['label', 'image', 'icon'].includes(element.type)) {
+                el.style.backgroundColor = 'transparent';
+            }
+        }
     }
 
     // Tab element (special handling - must be before container check)
@@ -854,13 +933,24 @@ function renderDividerContent(el, element) {
 
 function applyFontStyles(el, element) {
     const props = element.properties || {};
+    const settings = state.design.settings || {};
 
+    // Font Size
     if (props.fontSize) {
         el.style.fontSize = props.fontSize + 'px';
     }
+
+    // Font Color (Fallback to settings)
     if (props.fontColor) {
         el.style.color = props.fontColor;
+    } else {
+        if (['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
+            el.style.color = settings.inputText || '#ffffff';
+        } else {
+            el.style.color = settings.componentText || '#e8e8f0';
+        }
     }
+
     el.style.fontWeight = props.fontBold ? 'bold' : 'normal';
     el.style.fontStyle = props.fontItalic ? 'italic' : 'normal';
 }
@@ -895,10 +985,34 @@ function updateElementDOM(element) {
     applyFontStyles(el, element);
 
     // Apply background color
+    const settings = state.design.settings || {};
+
     if (element.properties?.bgNone) {
         el.style.backgroundColor = 'transparent';
     } else if (element.properties?.bgColor) {
         el.style.backgroundColor = element.properties.bgColor;
+    } else {
+        // Apply Setting Defaults
+        if (['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
+            el.style.backgroundColor = settings.inputBg || '#333344';
+        } else if (settings.componentBgTransparent && !['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
+            // For containers, transparency might be desired
+            el.style.backgroundColor = 'transparent';
+        } else if (!settings.componentBgTransparent && !['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
+            // Regular components get default bg if not transparent
+            // But wait, existing CSS sets background for .canvas-element.
+            // We should override it if we want to support switching.
+            el.style.backgroundColor = settings.componentBg || '#ffffff'; // Default white per user request? 
+            // User said "Component Background Color". 
+            // Current CSS is dark. If user wants to satisfy AI/User request, maybe let's use the setting.
+
+            // However, for some components like Label, Image, we might not want background?
+            // Let's exclude some types from default BG?
+            // Labels usually transparent. 
+            if (['label', 'image', 'icon'].includes(element.type)) {
+                el.style.backgroundColor = 'transparent';
+            }
+        }
     }
 
     // Re-render content based on type
@@ -1449,6 +1563,7 @@ function updateDividerProperties() {
         }
     }
 
+    // Apply Full Width logic if checked (simple override for now)
     if (element.properties.fullWidth) {
         if (newOrientation === 'horizontal') {
             const canvasWidth = state.design.canvas.flexible ? dom.canvas.offsetWidth : state.design.canvas.width;
@@ -1467,6 +1582,97 @@ function updateDividerProperties() {
 
     updateElementDOM(element);
     saveToHistory();
+}
+
+// ===== Settings / Palette Logic =====
+
+function setupSettingsEvents() {
+    document.getElementById('btn-close-settings').addEventListener('click', closeSettingsModal);
+    document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+    document.getElementById('settings-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'settings-modal') closeSettingsModal();
+    });
+}
+
+function openSettingsModal() {
+    const settings = state.design.settings || {};
+    const canvasBg = state.design.canvas.bgColor || '#2a2a3e';
+
+    document.getElementById('set-window-bg').value = settings.windowBg || canvasBg;
+    document.getElementById('set-comp-bg').value = settings.componentBg || '#ffffff';
+    document.getElementById('set-comp-text').value = settings.componentText || '#e8e8f0';
+    document.getElementById('set-input-bg').value = settings.inputBg || '#333344';
+    document.getElementById('set-input-text').value = settings.inputText || '#ffffff';
+    document.getElementById('set-comp-bg-transparent').checked = settings.componentBgTransparent || false;
+
+    generatePalette();
+    document.getElementById('settings-modal').style.display = 'flex';
+}
+
+function closeSettingsModal() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+function saveSettings() {
+    state.design.settings = {
+        windowBg: document.getElementById('set-window-bg').value,
+        componentBg: document.getElementById('set-comp-bg').value,
+        componentText: document.getElementById('set-comp-text').value,
+        inputBg: document.getElementById('set-input-bg').value,
+        inputText: document.getElementById('set-input-text').value,
+        componentBgTransparent: document.getElementById('set-comp-bg-transparent').checked
+    };
+
+    // Update Canvas BG as well
+    state.design.canvas.bgColor = state.design.settings.windowBg;
+    updateCanvasSize();
+
+    // Re-render all elements
+    state.design.elements.forEach(el => updateElementDOM(el));
+
+    closeSettingsModal();
+    saveToHistory();
+    setStatus('설정이 저장되었습니다');
+}
+
+function generatePalette() {
+    const paletteDiv = document.getElementById('project-palette');
+    paletteDiv.innerHTML = '';
+
+    const colors = new Set();
+
+    // Add default settings colors
+    if (state.design.settings) {
+        Object.values(state.design.settings).forEach(val => {
+            if (typeof val === 'string' && val.startsWith('#')) colors.add(val);
+        });
+    }
+    // Canvas BG
+    if (state.design.canvas.bgColor) colors.add(state.design.canvas.bgColor);
+
+    // Scan elements
+    state.design.elements.forEach(el => {
+        if (el.properties) {
+            ['bgColor', 'fontColor', 'tabActiveColor', 'tabInactiveColor'].forEach(prop => {
+                if (el.properties[prop] && typeof el.properties[prop] === 'string' && el.properties[prop].startsWith('#')) colors.add(el.properties[prop]); // Simple check
+                else if (el.properties[prop] && typeof el.properties[prop] === 'string' && el.properties[prop].startsWith('#')) colors.add(el.properties[prop]);
+            });
+        }
+    });
+
+    colors.forEach(color => {
+        const div = document.createElement('div');
+        div.className = 'palette-color-item';
+        div.style.backgroundColor = color;
+        div.setAttribute('data-color', color);
+        div.title = color + ' (Click to copy)';
+        div.onclick = () => {
+            navigator.clipboard.writeText(color).then(() => {
+                setStatus('복사됨: ' + color);
+            });
+        };
+        paletteDiv.appendChild(div);
+    });
 }
 
 function updateTableSize() {
@@ -1494,6 +1700,95 @@ function updateTableSize() {
     element.properties.cells = newCells;
 
     updateElementDOM(element);
+}
+
+function setupColorControl(inputId, propName, element, defaultColor = null) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    // Reset old logic if any
+    const newItem = input.cloneNode(true);
+    if (input.parentNode) input.parentNode.replaceChild(newItem, input);
+
+    // Bind change event
+    newItem.addEventListener('input', (e) => {
+        if (!element.properties) element.properties = {};
+        element.properties[propName] = e.target.value;
+        updateElementDOM(element);
+    });
+    newItem.addEventListener('change', () => {
+        saveToHistory();
+    });
+
+    // Set Initial Value
+    if (element.properties && element.properties[propName]) {
+        newItem.value = element.properties[propName];
+    } else {
+        newItem.value = defaultColor || '#000000';
+    }
+
+    // Now, setup Extras (Palette + Default Button)
+    let parent = newItem.parentNode;
+    let extras = parent.querySelector('.control-extras');
+    if (!extras) {
+        extras = document.createElement('div');
+        extras.className = 'control-extras';
+        extras.style.display = 'flex';
+        extras.style.alignItems = 'center';
+        extras.style.gap = '8px';
+        extras.style.marginTop = '4px';
+        parent.appendChild(extras);
+    }
+    extras.innerHTML = ''; // Clear previous
+
+    // 1. Default Button
+    const btnDefault = document.createElement('button');
+    btnDefault.textContent = '기본값';
+    btnDefault.className = 'btn-icon-small';
+    btnDefault.style.width = 'auto';
+    btnDefault.style.padding = '2px 8px';
+    btnDefault.style.fontSize = '11px';
+    btnDefault.title = '프로젝트 설정의 기본값을 사용합니다';
+    btnDefault.onclick = () => {
+        if (element.properties) {
+            element.properties[propName] = null; // Reset to null
+            updateElementDOM(element);
+            saveToHistory();
+            showElementProperties();
+        }
+    };
+    extras.appendChild(btnDefault);
+
+    // 2. Palette (Mini)
+    const paletteContainer = document.createElement('div');
+    paletteContainer.style.display = 'flex';
+    paletteContainer.style.gap = '4px';
+
+    const colors = new Set();
+    if (state.design.settings) {
+        Object.values(state.design.settings).forEach(val => {
+            if (typeof val === 'string' && val.startsWith('#')) colors.add(val);
+        });
+    }
+    if (state.design.canvas.bgColor) colors.add(state.design.canvas.bgColor);
+
+    Array.from(colors).slice(0, 8).forEach(color => {
+        const chip = document.createElement('div');
+        chip.style.width = '16px';
+        chip.style.height = '16px';
+        chip.style.backgroundColor = color;
+        chip.style.border = '1px solid #555';
+        chip.style.cursor = 'pointer';
+        chip.title = color;
+        chip.onclick = () => {
+            newItem.value = color;
+            element.properties[propName] = color;
+            updateElementDOM(element);
+            saveToHistory();
+        };
+        paletteContainer.appendChild(chip);
+    });
+    extras.appendChild(paletteContainer);
 }
 
 function openTableEditor() {
@@ -1713,12 +2008,12 @@ function showElementProperties() {
 
     // Font properties
     document.getElementById('font-size').value = element.properties?.fontSize || 14;
-    document.getElementById('font-color').value = element.properties?.fontColor || '#e8e8f0';
+    setupColorControl('font-color', 'fontColor', element);
     document.getElementById('btn-bold').classList.toggle('active', element.properties?.fontBold || false);
     document.getElementById('btn-italic').classList.toggle('active', element.properties?.fontItalic || false);
 
     // Background color
-    document.getElementById('elem-bgcolor').value = element.properties?.bgColor || '#1e1e32';
+    setupColorControl('elem-bgcolor', 'bgColor', element);
     document.getElementById('elem-bgcolor-none').checked = element.properties?.bgNone || false;
 
     // Tab Management & Appearance
@@ -1736,12 +2031,12 @@ function showElementProperties() {
         renderTabList(element);
 
         // Populate inputs
-        document.getElementById('tab-active-bg').value = element.properties?.tabActiveColor || '#667eea';
-        document.getElementById('tab-active-font-color').value = element.properties?.fontActiveColor || '#ffffff';
+        setupColorControl('tab-active-bg', 'tabActiveColor', element, '#667eea');
+        setupColorControl('tab-active-font-color', 'fontActiveColor', element, '#ffffff');
         document.getElementById('tab-active-font-size').value = element.properties?.fontActiveSize || 13;
 
-        document.getElementById('tab-inactive-bg').value = element.properties?.tabInactiveColor || '#16213e';
-        document.getElementById('tab-inactive-font-color').value = element.properties?.fontInactiveColor || '#cccccc';
+        setupColorControl('tab-inactive-bg', 'tabInactiveColor', element, '#16213e');
+        setupColorControl('tab-inactive-font-color', 'fontInactiveColor', element, '#cccccc');
         document.getElementById('tab-inactive-font-size').value = element.properties?.fontInactiveSize || 13;
 
         // Tab bar alignment buttons

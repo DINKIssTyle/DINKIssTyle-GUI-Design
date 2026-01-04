@@ -41,6 +41,10 @@
                     <span class="icon">↪️</span>
                     <span>다시</span>
                 </button>
+                <button id="btn-settings" class="toolbar-btn" title="프로젝트 설정">
+                    <span class="icon">⚙️</span>
+                    <span>설정</span>
+                </button>
                 <div class="toolbar-divider"></div>
                 <button id="btn-export-json" class="toolbar-btn export-btn" title="JSON으로 내보내기">
                     <span class="icon">📤</span>
@@ -74,7 +78,7 @@
                     </div>
                     <div class="palette-item" draggable="true" data-type="tab">
                         <span class="palette-icon">📑</span>
-                        <span class="palette-label">탭바</span>
+                        <span class="palette-label">탭</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="table">
                         <span class="palette-icon">📋</span>
@@ -422,6 +426,57 @@
                 </div>
             </aside>
         </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>프로젝트 설정</h3>
+                <button class="btn-close-modal" id="btn-close-settings">✖</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>기본 색상 (Default Colors)</h4>
+                    <div class="color-grid">
+                        <div class="color-control">
+                            <label>윈도우 배경</label>
+                            <input type="color" id="set-window-bg" value="#2a2a3e">
+                        </div>
+                        <div class="color-control">
+                            <label>컴포넌트 텍스트</label>
+                            <input type="color" id="set-comp-text" value="#e8e8f0">
+                        </div>
+                        <div class="color-control">
+                            <label>컴포넌트 배경</label>
+                            <div class="color-input-group">
+                                <input type="color" id="set-comp-bg" value="#ffffff">
+                                <label><input type="checkbox" id="set-comp-bg-transparent"> 투명</label>
+                            </div>
+                        </div>
+                        <div class="color-control">
+                            <label>입력/버튼 배경</label>
+                            <input type="color" id="set-input-bg" value="#333344">
+                        </div>
+                        <div class="color-control">
+                            <label>입력/버튼 텍스트</label>
+                            <input type="color" id="set-input-text" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>사용된 색상 (Used Palette)</h4>
+                    <p class="section-desc">현재 프로젝트에서 사용 중인 색상입니다. 클릭하여 복사하세요.</p>
+                    <div id="project-palette" class="palette-grid">
+                        <!-- Colors will be injected via JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-save-settings" class="btn-primary">설정 저장</button>
+            </div>
+        </div>
     </div>
     <script src="./src/main.js" type="module"></script>
 </body>
