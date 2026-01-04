@@ -275,33 +275,58 @@ async function exportXML() {
 }
 
 function designToXML(design) {
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<GUIDesign>\n';
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<Window>\n';
 
-    // Canvas
-    xml += '  <canvas>\n';
-    xml += `    <width>${design.canvas.width}</width>\n`;
-    xml += `    <height>${design.canvas.height}</height>\n`;
-    xml += `    <flexible>${design.canvas.flexible}</flexible>\n`;
-    xml += `    <title>${escapeXml(design.canvas.title)}</title>\n`;
-    xml += '  </canvas>\n';
+    // Window Properties
+    xml += '  <Properties>\n';
+    xml += `    <Title>${escapeXml(design.canvas.title)}</Title>\n`;
+    xml += `    <Description>${escapeXml(design.canvas.description || '')}</Description>\n`;
+    xml += `    <Width>${design.canvas.width}</Width>\n`;
+    xml += `    <Height>${design.canvas.height}</Height>\n`;
+    xml += `    <Flexible>${design.canvas.flexible}</Flexible>\n`;
+    xml += `    <BgColor>${design.canvas.bgColor}</BgColor>\n`;
+    xml += '  </Properties>\n';
 
-    // Elements - build hierarchy
+    // Components - build hierarchy
     const rootElements = design.elements.filter(el => !el.parentId);
-    xml += '  <elements>\n';
+    xml += '  <Components>\n';
 
     function renderElement(el, indent = '    ') {
-        let result = `${indent}<element id="${el.id}">\n`;
-        result += `${indent}  <type>${el.type}</type>\n`;
-        result += `${indent}  <name>${escapeXml(el.name)}</name>\n`;
-        result += `${indent}  <description>${escapeXml(el.description)}</description>\n`;
-        result += `${indent}  <x>${el.x}</x>\n`;
-        result += `${indent}  <y>${el.y}</y>\n`;
-        result += `${indent}  <width>${el.width}</width>\n`;
-        result += `${indent}  <height>${el.height}</height>\n`;
-        result += `${indent}  <properties>\n`;
-        result += `${indent}    <text>${escapeXml(el.properties?.text || '')}</text>\n`;
-        result += `${indent}    <style>${el.properties?.style || 'default'}</style>\n`;
-        result += `${indent}    <textAlign>${el.properties?.textAlign || 'center'}</textAlign>\n`;
+        let result = `${indent}<Component id="${el.id}">\n`;
+        result += `${indent}  <Type>${el.type}</Type>\n`;
+        result += `${indent}  <Name>${escapeXml(el.name)}</Name>\n`;
+        result += `${indent}  <Description>${escapeXml(el.description || '')}</Description>\n`;
+        result += `${indent}  <X>${el.x}</X>\n`;
+        result += `${indent}  <Y>${el.y}</Y>\n`;
+        result += `${indent}  <Width>${el.width}</Width>\n`;
+        result += `${indent}  <Height>${el.height}</Height>\n`;
+        result += `${indent}  <Properties>\n`;
+        result += `${indent}    <Text>${escapeXml(el.properties?.text || '')}</Text>\n`;
+        result += `${indent}    <Style>${el.properties?.style || 'default'}</Style>\n`;
+        result += `${indent}    <TextAlign>${el.properties?.textAlign || 'center'}</TextAlign>\n`;
+
+        // Font properties
+        if (el.properties?.fontSize) result += `${indent}    <fontSize>${el.properties.fontSize}</fontSize>\n`;
+        if (el.properties?.fontColor) result += `${indent}    <fontColor>${el.properties.fontColor}</fontColor>\n`;
+        if (el.properties?.fontBold) result += `${indent}    <fontBold>true</fontBold>\n`;
+        if (el.properties?.fontItalic) result += `${indent}    <fontItalic>true</fontItalic>\n`;
+
+        // Background
+        if (el.properties?.bgColor) result += `${indent}    <bgColor>${el.properties.bgColor}</bgColor>\n`;
+        if (el.properties?.bgNone) result += `${indent}    <bgNone>true</bgNone>\n`;
+
+        // Parent/Tab relationship (for AI understanding)
+        if (el.parentId) {
+            result += `${indent}    <parentId>${el.parentId}</parentId>\n`;
+            if (el.parentTabIndex !== undefined) {
+                result += `${indent}    <parentTabIndex>${el.parentTabIndex}</parentTabIndex>\n`;
+            }
+        }
+
+        // Section-specific: full width
+        if (el.type === 'section' && el.properties?.fullWidth) {
+            result += `${indent}    <fullWidth>true</fullWidth>\n`;
+        }
 
         // Table-specific
         if (el.type === 'table' && el.properties?.cells) {
@@ -318,13 +343,23 @@ function designToXML(design) {
             result += `${indent}    </cells>\n`;
         }
 
-        // Tab-specific
-        if (el.type === 'tab' && el.properties?.tabLabels) {
+        // Tab-specific (corrected structure)
+        if (el.type === 'tab' && el.properties?.tabs) {
+            result += `${indent}    <tabAlign>${el.properties.tabAlign || 'left'}</tabAlign>\n`;
+            result += `${indent}    <activeTab>${el.properties.activeTab || 0}</activeTab>\n`;
             result += `${indent}    <tabs>\n`;
-            el.properties.tabLabels.forEach((label, i) => {
-                result += `${indent}      <tab index="${i}">${escapeXml(label)}</tab>\n`;
+            el.properties.tabs.forEach((tab, i) => {
+                result += `${indent}      <tab index="${i}" id="${tab.id || ''}">${escapeXml(tab.label)}</tab>\n`;
             });
             result += `${indent}    </tabs>\n`;
+            // Tab styling
+            if (el.properties.tabActiveColor) result += `${indent}    <tabActiveColor>${el.properties.tabActiveColor}</tabActiveColor>\n`;
+            if (el.properties.tabInactiveColor) result += `${indent}    <tabInactiveColor>${el.properties.tabInactiveColor}</tabInactiveColor>\n`;
+        }
+
+        // Switch-specific
+        if (el.type === 'switch' && el.properties?.switchOn !== undefined) {
+            result += `${indent}    <switchOn>${el.properties.switchOn}</switchOn>\n`;
         }
 
         result += `${indent}  </properties>\n`;
@@ -341,7 +376,21 @@ function designToXML(design) {
             result += `${indent}  </children>\n`;
         }
 
-        result += `${indent}</element>\n`;
+        result += `${indent}  </Properties>\n`;
+
+        // Children (hierarchy)
+        if (el.children && el.children.length > 0) {
+            result += `${indent}  <Children>\n`;
+            el.children.forEach(childId => {
+                const child = design.elements.find(e => e.id === childId);
+                if (child) {
+                    result += renderElement(child, indent + '    ');
+                }
+            });
+            result += `${indent}  </Children>\n`;
+        }
+
+        result += `${indent}</Component>\n`;
         return result;
     }
 
@@ -349,8 +398,12 @@ function designToXML(design) {
         xml += renderElement(el);
     });
 
-    xml += '  </elements>\n';
-    xml += '</GUIDesign>';
+    rootElements.forEach(el => {
+        xml += renderElement(el);
+    });
+
+    xml += '  </Components>\n';
+    xml += '</Window>';
 
     return xml;
 }
@@ -1157,6 +1210,7 @@ function hideGuides() {
 function setupPropertyEvents() {
     // Canvas properties
     document.getElementById('canvas-title').addEventListener('input', updateCanvasFromInput);
+    document.getElementById('canvas-description').addEventListener('input', updateCanvasFromInput);
     document.getElementById('canvas-width').addEventListener('input', updateCanvasFromInput);
     document.getElementById('canvas-height').addEventListener('input', updateCanvasFromInput);
     document.getElementById('canvas-flexible').addEventListener('change', updateCanvasFromInput);
@@ -1447,7 +1501,7 @@ function updateParentSelector() {
     const currentId = state.selectedElement;
 
     // Clear options
-    select.innerHTML = '<option value="">(없음 - 캔버스 직속)</option>';
+    select.innerHTML = '<option value="">(없음 - 윈도우 직속)</option>';
 
     // Add container elements as options
     state.design.elements.forEach(el => {
@@ -1516,11 +1570,15 @@ function updateElementParent(e) {
     saveToHistory();
 }
 
+
+
 function updateCanvasFromInput() {
     state.design.canvas.title = document.getElementById('canvas-title').value;
+    state.design.canvas.description = document.getElementById('canvas-description').value; // Add description
     state.design.canvas.width = parseInt(document.getElementById('canvas-width').value) || 800;
     state.design.canvas.height = parseInt(document.getElementById('canvas-height').value) || 600;
     state.design.canvas.flexible = document.getElementById('canvas-flexible').checked;
+    state.design.canvas.bgColor = document.getElementById('canvas-bgcolor').value; // Ensure background color is saved
 
     updateCanvasSize();
 }

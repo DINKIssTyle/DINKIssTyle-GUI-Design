@@ -157,12 +157,16 @@
             <aside class="properties-panel">
                 <h2 class="panel-title">속성</h2>
 
-                <!-- Canvas Properties -->
+                <!-- Window Properties -->
                 <div class="property-section" id="canvas-properties">
-                    <h3 class="property-section-title">캔버스 설정</h3>
+                    <h3 class="property-section-title">윈도우 설정</h3>
                     <div class="property-row">
                         <label>제목</label>
-                        <input type="text" id="canvas-title" placeholder="디자인 제목" />
+                        <input type="text" id="canvas-title" placeholder="윈도우 제목" />
+                    </div>
+                    <div class="property-row">
+                        <label>설명</label>
+                        <textarea id="canvas-description" placeholder="이 윈도우의 목적과 기능을 설명하세요 (AI 전달용)"></textarea>
                     </div>
                     <div class="property-row">
                         <label>너비</label>
@@ -186,14 +190,14 @@
 
                 <!-- Element Properties -->
                 <div class="property-section" id="element-properties" style="display: none;">
-                    <h3 class="property-section-title">요소 속성</h3>
+                    <h3 class="property-section-title">컴포넌트 속성</h3>
                     <div class="property-row">
                         <label>이름</label>
-                        <input type="text" id="elem-name" placeholder="요소 이름" />
+                        <input type="text" id="elem-name" placeholder="컴포넌트 이름" />
                     </div>
                     <div class="property-row">
                         <label>설명</label>
-                        <textarea id="elem-description" placeholder="요소에 대한 설명을 입력하세요"></textarea>
+                        <textarea id="elem-description" placeholder="컴포넌트에 대한 설명을 입력하세요"></textarea>
                     </div>
                     <div class="property-row">
                         <label>ID</label>
@@ -351,9 +355,9 @@
                         </div>
                     </div>
                     <div class="property-row">
-                        <label>부모 요소</label>
+                        <label>부모 컴포넌트</label>
                         <select id="elem-parent">
-                            <option value="">(없음 - 캔버스 직속)</option>
+                            <option value="">(없음 - 윈도우 직속)</option>
                         </select>
                     </div>
 
@@ -387,10 +391,10 @@
                     </div>
 
                     <div class="property-row" style="margin-top: 16px;">
-                        <button id="btn-duplicate-element" class="btn-secondary">복제 (Ctrl+D)</button>
+                        <button id="btn-duplicate-element" class="btn-secondary">컴포넌트 복제 (Ctrl+D)</button>
                     </div>
                     <div class="property-row">
-                        <button id="btn-delete-element" class="btn-delete">요소 삭제</button>
+                        <button id="btn-delete-element" class="btn-delete">컴포넌트 삭제</button>
                     </div>
                 </div>
             </aside>
