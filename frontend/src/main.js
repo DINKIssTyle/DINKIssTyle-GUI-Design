@@ -117,6 +117,11 @@ function handleKeyDown(e) {
     if (e.key === 'Delete' && state.selectedElement) {
         deleteElement(state.selectedElement);
     }
+    // Ctrl+D = Duplicate element
+    if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        duplicateElement();
+    }
 }
 
 // ===== Toolbar Events =====
@@ -664,6 +669,7 @@ function renderTabContent(el, element) {
     const tabAlign = props.tabAlign || 'left';
     if (tabAlign === 'center') header.style.justifyContent = 'center';
     else if (tabAlign === 'right') header.style.justifyContent = 'flex-end';
+    else if (tabAlign === 'stretch') header.style.justifyContent = 'stretch';
     else header.style.justifyContent = 'flex-start';
 
     // Body
@@ -689,6 +695,12 @@ function renderTabContent(el, element) {
         }
 
         tab.textContent = tabInfo.label;
+
+        // Stretch mode: make tabs fill the entire width
+        if (tabAlign === 'stretch') {
+            tab.style.flex = '1';
+            tab.style.textAlign = 'center';
+        }
 
         // Click to switch tab
         tab.addEventListener('mousedown', (e) => {
@@ -962,6 +974,34 @@ function deleteElement(id) {
     setStatus('요소 삭제됨');
 }
 
+function duplicateElement() {
+    if (!state.selectedElement) return;
+    const original = getElementData(state.selectedElement);
+    if (!original) return;
+
+    // Deep copy the element
+    const id = `elem_${++state.elementCounter}`;
+    const duplicate = JSON.parse(JSON.stringify(original));
+
+    duplicate.id = id;
+    duplicate.name = `${original.name || original.type}_copy`;
+    duplicate.x = original.x + 20;
+    duplicate.y = original.y + 20;
+    duplicate.zIndex = ++state.zIndexCounter;
+
+    // Add to state
+    state.design.elements.push(duplicate);
+
+    // Create DOM
+    createElementDOM(duplicate);
+
+    // Select the duplicate
+    selectElement(id);
+
+    setStatus('요소 복제됨');
+    saveToHistory();
+}
+
 function getElementData(id) {
     return state.design.elements.find(e => e.id === id);
 }
@@ -1195,6 +1235,9 @@ function setupPropertyEvents() {
     document.getElementById('table-rows').addEventListener('input', updateTableSize);
     document.getElementById('table-cols').addEventListener('input', updateTableSize);
     document.getElementById('btn-edit-table').addEventListener('click', openTableEditor);
+
+    // Duplicate button
+    document.getElementById('btn-duplicate-element').addEventListener('click', duplicateElement);
 
     // Delete button
     document.getElementById('btn-delete-element').addEventListener('click', () => {

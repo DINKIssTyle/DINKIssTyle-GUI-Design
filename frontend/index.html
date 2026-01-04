@@ -294,12 +294,14 @@
                         <div class="property-row">
                             <label>탭바 정렬</label>
                             <div class="btn-group">
-                                <button type="button" class="btn-align tab-align" data-align="left" id="tab-align-left"
+                                <button type="button" class="tab-align" data-align="left" id="tab-align-left"
                                     title="왼쪽">◀</button>
-                                <button type="button" class="btn-align tab-align" data-align="center"
-                                    id="tab-align-center" title="가운데">●</button>
-                                <button type="button" class="btn-align tab-align" data-align="right"
-                                    id="tab-align-right" title="오른쪽">▶</button>
+                                <button type="button" class="tab-align" data-align="center" id="tab-align-center"
+                                    title="가운데">●</button>
+                                <button type="button" class="tab-align" data-align="right" id="tab-align-right"
+                                    title="오른쪽">▶</button>
+                                <button type="button" class="tab-align" data-align="stretch" id="tab-align-stretch"
+                                    title="채우기">↔</button>
                             </div>
                         </div>
 
@@ -385,6 +387,9 @@
                     </div>
 
                     <div class="property-row" style="margin-top: 16px;">
+                        <button id="btn-duplicate-element" class="btn-secondary">복제 (Ctrl+D)</button>
+                    </div>
+                    <div class="property-row">
                         <button id="btn-delete-element" class="btn-delete">요소 삭제</button>
                     </div>
                 </div>

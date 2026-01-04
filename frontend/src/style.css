@@ -697,7 +697,8 @@ body {
     gap: 4px;
 }
 
-.btn-align {
+.btn-align,
+.tab-align {
     flex: 1;
     padding: 8px;
     background: var(--bg-tertiary);
@@ -709,12 +710,14 @@ body {
     transition: all var(--transition-fast);
 }
 
-.btn-align:hover {
+.btn-align:hover,
+.tab-align:hover {
     background: var(--bg-secondary);
     border-color: var(--accent-primary);
 }
 
-.btn-align.active {
+.btn-align.active,
+.tab-align.active {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
     color: white;
@@ -1113,6 +1116,7 @@ input[type="color"]::-webkit-color-swatch {
 .tab-header {
     display: flex;
     flex-direction: row;
+    width: 100%;
     background: transparent;
     border-bottom: 1px solid var(--border-color);
     gap: 2px;
