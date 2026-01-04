@@ -10,6 +10,10 @@ export function ExportXML() {
   return window['go']['main']['App']['ExportXML']();
 }
 
+export function GetCurrentFilePath() {
+  return window['go']['main']['App']['GetCurrentFilePath']();
+}
+
 export function GetDesign() {
   return window['go']['main']['App']['GetDesign']();
 }
@@ -24,6 +28,10 @@ export function NewDesign() {
 
 export function SaveDesign() {
   return window['go']['main']['App']['SaveDesign']();
+}
+
+export function SaveDesignAs() {
+  return window['go']['main']['App']['SaveDesignAs']();
 }
 
 export function SetDesign(arg1) {

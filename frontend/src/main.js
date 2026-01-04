@@ -19,6 +19,8 @@ const state = {
     dragOffset: { x: 0, y: 0 },
     elementCounter: 0,
     zIndexCounter: 100,
+    // Zoom
+    zoom: 1.0,
     // Undo/Redo
     history: [],
     historyIndex: -1,
@@ -88,6 +90,7 @@ function init() {
     setupPaletteEvents();
     setupCanvasEvents();
     setupPropertyEvents();
+    setupZoomEvents();
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
@@ -438,8 +441,9 @@ function handleCanvasDrop(e) {
     if (!componentType) return;
 
     const rect = dom.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // Apply zoom correction to mouse coordinates
+    const x = (e.clientX - rect.left) / state.zoom;
+    const y = (e.clientY - rect.top) / state.zoom;
 
     addElementToCanvas(componentType, x, y);
 }
@@ -450,8 +454,10 @@ function addElementToCanvas(type, x, y, parentId = null) {
     const id = `elem_${++state.elementCounter}`;
 
     // Center the element on drop position
-    x = Math.max(0, Math.min(x - defaults.width / 2, state.design.canvas.width - defaults.width));
-    y = Math.max(0, Math.min(y - defaults.height / 2, state.design.canvas.height - defaults.height));
+    const canvasWidth = state.design.canvas.flexible ? dom.canvas.offsetWidth : state.design.canvas.width;
+    const canvasHeight = state.design.canvas.flexible ? dom.canvas.offsetHeight : state.design.canvas.height;
+    x = Math.max(0, Math.min(x - defaults.width / 2, canvasWidth - defaults.width));
+    y = Math.max(0, Math.min(y - defaults.height / 2, canvasHeight - defaults.height));
 
     // Determine parent if not provided (check for containers at drop location)
     if (!parentId) {
@@ -577,8 +583,13 @@ function createElementDOM(element) {
         el.style.backgroundColor = element.properties.bgColor;
     }
 
-    // Container elements
-    if (containerTypes.includes(element.type)) {
+    // Tab element (special handling - must be before container check)
+    if (element.type === 'tab') {
+        el.classList.add('is-container');
+        renderTabContent(el, element);
+    }
+    // Container elements (section, card)
+    else if (containerTypes.includes(element.type) && element.type !== 'tab') {
         el.classList.add('is-container');
         const label = document.createElement('span');
         label.className = 'container-label';
@@ -588,10 +599,6 @@ function createElementDOM(element) {
     // Table element
     else if (element.type === 'table') {
         renderTableContent(el, element);
-    }
-    // Tab element
-    else if (element.type === 'tab') {
-        renderTabContent(el, element);
     }
     // Switch element
     else if (element.type === 'switch') {
@@ -653,9 +660,10 @@ function renderTabContent(el, element) {
     const header = document.createElement('div');
     header.className = 'tab-header';
 
-    const textAlign = props.textAlign || 'left';
-    if (textAlign === 'center') header.style.justifyContent = 'center';
-    else if (textAlign === 'right') header.style.justifyContent = 'flex-end';
+    // Tab alignment (default: left)
+    const tabAlign = props.tabAlign || 'left';
+    if (tabAlign === 'center') header.style.justifyContent = 'center';
+    else if (tabAlign === 'right') header.style.justifyContent = 'flex-end';
     else header.style.justifyContent = 'flex-start';
 
     // Body
@@ -840,9 +848,9 @@ function handleElementMouseDown(e) {
     const canvasRect = dom.canvas.getBoundingClientRect();
 
     state.isDragging = true;
-    // Store offset from element's top-left corner
-    state.dragOffset.x = e.clientX - canvasRect.left - element.x;
-    state.dragOffset.y = e.clientY - canvasRect.top - element.y;
+    // Store offset from element's top-left corner (with zoom correction)
+    state.dragOffset.x = (e.clientX - canvasRect.left) / state.zoom - element.x;
+    state.dragOffset.y = (e.clientY - canvasRect.top) / state.zoom - element.y;
 
     el.classList.add('dragging');
 }
@@ -854,17 +862,20 @@ function handleElementDrag(e) {
     if (!element) return;
 
     const canvasRect = dom.canvas.getBoundingClientRect();
-    let newX = e.clientX - canvasRect.left - state.dragOffset.x;
-    let newY = e.clientY - canvasRect.top - state.dragOffset.y;
+    // Apply zoom correction to mouse coordinates
+    let newX = (e.clientX - canvasRect.left) / state.zoom - state.dragOffset.x;
+    let newY = (e.clientY - canvasRect.top) / state.zoom - state.dragOffset.y;
 
     // Snap to alignment guides
     const snapResult = snapToGuides(newX, newY, element.width, element.height);
     newX = snapResult.x;
     newY = snapResult.y;
 
-    // Constrain to canvas bounds
-    newX = Math.max(0, Math.min(newX, state.design.canvas.width - element.width));
-    newY = Math.max(0, Math.min(newY, state.design.canvas.height - element.height));
+    // Constrain to canvas bounds (use actual canvas size in flexible mode)
+    const canvasWidth = state.design.canvas.flexible ? dom.canvas.offsetWidth : state.design.canvas.width;
+    const canvasHeight = state.design.canvas.flexible ? dom.canvas.offsetHeight : state.design.canvas.height;
+    newX = Math.max(0, Math.min(newX, canvasWidth - element.width));
+    newY = Math.max(0, Math.min(newY, canvasHeight - element.height));
 
     // Calculate delta for moving children
     const dx = Math.round(newX) - element.x;
@@ -1158,6 +1169,14 @@ function setupPropertyEvents() {
             updateTabStyle(prop, e.target.value);
         });
     }
+
+    // Tab Bar Alignment Buttons
+    document.querySelectorAll('.tab-align').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const align = btn.dataset.align;
+            setTabAlignment(align);
+        });
+    });
 
     // Legacy or direct color inputs (if needed, but we replaced HTML)
     // document.getElementById('tab-active-color').addEventListener('input', updateTabColors);
@@ -1533,6 +1552,12 @@ function showElementProperties() {
         document.getElementById('tab-inactive-font-color').value = element.properties?.fontInactiveColor || '#cccccc';
         document.getElementById('tab-inactive-font-size').value = element.properties?.fontInactiveSize || 13;
 
+        // Tab bar alignment buttons
+        const tabAlign = element.properties?.tabAlign || 'left';
+        document.querySelectorAll('.tab-align').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.align === tabAlign);
+        });
+
     } else {
         if (tabMgmt) tabMgmt.style.display = 'none';
         if (tabAppear) tabAppear.style.display = 'none';
@@ -1648,6 +1673,53 @@ function setStatus(text) {
     if (dom.statusText) {
         dom.statusText.textContent = text;
     }
+}
+
+// ===== Zoom Functions =====
+function setZoom(level) {
+    state.zoom = Math.max(0.25, Math.min(2.0, level));
+    dom.canvas.style.transform = `scale(${state.zoom})`;
+    dom.canvas.style.transformOrigin = 'top left';
+    updateZoomDisplay();
+}
+
+function zoomIn() {
+    setZoom(state.zoom + 0.1);
+}
+
+function zoomOut() {
+    setZoom(state.zoom - 0.1);
+}
+
+function resetZoom() {
+    setZoom(1.0);
+}
+
+function updateZoomDisplay() {
+    const display = document.getElementById('zoom-level');
+    if (display) display.textContent = Math.round(state.zoom * 100) + '%';
+}
+
+function setupZoomEvents() {
+    const zoomInBtn = document.getElementById('btn-zoom-in');
+    const zoomOutBtn = document.getElementById('btn-zoom-out');
+    const zoomResetBtn = document.getElementById('btn-zoom-reset');
+
+    if (zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
+    if (zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
+    if (zoomResetBtn) zoomResetBtn.addEventListener('click', resetZoom);
+
+    // Mouse wheel zoom (Ctrl + scroll)
+    dom.canvas?.parentElement?.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomIn();
+            } else {
+                zoomOut();
+            }
+        }
+    }, { passive: false });
 }
 
 // ===== History (Undo/Redo) =====
@@ -1813,6 +1885,23 @@ function updateTabStyle(prop, value) {
     element.properties[prop] = value;
 
     updateElementDOM(element);
+}
+
+function setTabAlignment(align) {
+    if (!state.selectedElement) return;
+    const element = getElementData(state.selectedElement);
+    if (!element || element.type !== 'tab') return;
+
+    element.properties = element.properties || {};
+    element.properties.tabAlign = align;
+
+    // Update button states
+    document.querySelectorAll('.tab-align').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.align === align);
+    });
+
+    updateElementDOM(element);
+    saveToHistory();
 }
 
 function updateSectionFullWidth() {

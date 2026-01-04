@@ -50,8 +50,9 @@ type GUIDesign struct {
 
 // App struct
 type App struct {
-	ctx           context.Context
-	currentDesign GUIDesign
+	ctx             context.Context
+	currentDesign   GUIDesign
+	currentFilePath string // 현재 작업 파일 경로
 }
 
 // NewApp creates a new App application struct
@@ -66,6 +67,7 @@ func NewApp() *App {
 			},
 			Elements: []GUIElement{},
 		},
+		currentFilePath: "",
 	}
 }
 
@@ -82,6 +84,11 @@ func (a *App) GetDesign() GUIDesign {
 // SetDesign updates the current design
 func (a *App) SetDesign(design GUIDesign) {
 	a.currentDesign = design
+}
+
+// GetCurrentFilePath returns the current file path
+func (a *App) GetCurrentFilePath() string {
+	return a.currentFilePath
 }
 
 // ExportJSON exports the design to a JSON file
@@ -145,8 +152,27 @@ func (a *App) ExportXML() (string, error) {
 	return filePath, nil
 }
 
-// SaveDesign saves the design to a file
+// saveToPath saves design to a specific path
+func (a *App) saveToPath(filePath string) (string, error) {
+	data, err := json.MarshalIndent(a.currentDesign, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	err = os.WriteFile(filePath, data, 0644)
+	if err != nil {
+		return "", err
+	}
+	return filePath, nil
+}
+
+// SaveDesign saves the design to a file (reuses existing path if available)
 func (a *App) SaveDesign() (string, error) {
+	// If we have an existing file path, save directly
+	if a.currentFilePath != "" {
+		return a.saveToPath(a.currentFilePath)
+	}
+
+	// Otherwise, show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Save Design",
 		DefaultFilename: "design.guidesign",
@@ -161,17 +187,38 @@ func (a *App) SaveDesign() (string, error) {
 		return "", nil
 	}
 
-	data, err := json.MarshalIndent(a.currentDesign, "", "  ")
+	result, err := a.saveToPath(filePath)
 	if err != nil {
 		return "", err
 	}
 
-	err = os.WriteFile(filePath, data, 0644)
+	a.currentFilePath = filePath
+	return result, nil
+}
+
+// SaveDesignAs saves the design to a new file (always shows dialog)
+func (a *App) SaveDesignAs() (string, error) {
+	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Save Design As",
+		DefaultFilename: "design.guidesign",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "GUI Design Files", Pattern: "*.guidesign"},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	if filePath == "" {
+		return "", nil
+	}
+
+	result, err := a.saveToPath(filePath)
 	if err != nil {
 		return "", err
 	}
 
-	return filePath, nil
+	a.currentFilePath = filePath
+	return result, nil
 }
 
 // LoadDesign loads a design from a file
@@ -202,6 +249,7 @@ func (a *App) LoadDesign() (*GUIDesign, error) {
 	}
 
 	a.currentDesign = design
+	a.currentFilePath = filePath // 불러온 파일 경로 저장
 	return &design, nil
 }
 
@@ -216,5 +264,7 @@ func (a *App) NewDesign() GUIDesign {
 		},
 		Elements: []GUIElement{},
 	}
+	a.currentFilePath = "" // 새 디자인은 경로 초기화
 	return a.currentDesign
 }
+

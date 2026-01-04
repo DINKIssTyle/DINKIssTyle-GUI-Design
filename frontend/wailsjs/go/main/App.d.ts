@@ -6,6 +6,8 @@ export function ExportJSON():Promise<string>;
 
 export function ExportXML():Promise<string>;
 
+export function GetCurrentFilePath():Promise<string>;
+
 export function GetDesign():Promise<main.GUIDesign>;
 
 export function LoadDesign():Promise<main.GUIDesign>;
@@ -13,5 +15,7 @@ export function LoadDesign():Promise<main.GUIDesign>;
 export function NewDesign():Promise<main.GUIDesign>;
 
 export function SaveDesign():Promise<string>;
+
+export function SaveDesignAs():Promise<string>;
 
 export function SetDesign(arg1:main.GUIDesign):Promise<void>;

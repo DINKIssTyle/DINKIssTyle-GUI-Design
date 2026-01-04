@@ -17,7 +17,7 @@
         <!-- Toolbar -->
         <header class="toolbar">
             <div class="toolbar-left">
-                <h1 class="logo">GUI Designer</h1>
+                <h1 class="logo">DKST GUI Designer</h1>
             </div>
             <div class="toolbar-center">
                 <button id="btn-new" class="toolbar-btn" title="새로 만들기">
@@ -144,6 +144,10 @@
                     </div>
                 </div>
                 <div class="canvas-info">
+                    <button id="btn-zoom-out" class="zoom-btn" title="축소 (Ctrl+스크롤)">➖</button>
+                    <span id="zoom-level">100%</span>
+                    <button id="btn-zoom-in" class="zoom-btn" title="확대 (Ctrl+스크롤)">➕</button>
+                    <button id="btn-zoom-reset" class="zoom-btn" title="100%로 초기화">🔄</button>
                     <span id="canvas-size">800 × 600</span>
                     <span class="canvas-mode" id="canvas-mode">고정 크기</span>
                 </div>
@@ -285,6 +289,19 @@
                     <!-- Tab Appearance (shown only for tabs) -->
                     <div id="tab-appearance" style="display: none;">
                         <h4 class="property-section-title">탭 스타일</h4>
+
+                        <!-- Tab Bar Alignment -->
+                        <div class="property-row">
+                            <label>탭바 정렬</label>
+                            <div class="btn-group">
+                                <button type="button" class="btn-align tab-align" data-align="left" id="tab-align-left"
+                                    title="왼쪽">◀</button>
+                                <button type="button" class="btn-align tab-align" data-align="center"
+                                    id="tab-align-center" title="가운데">●</button>
+                                <button type="button" class="btn-align tab-align" data-align="right"
+                                    id="tab-align-right" title="오른쪽">▶</button>
+                            </div>
+                        </div>
 
                         <div class="property-label-small" style="font-size: 11px; color: #888; margin-top: 8px;">활성 탭
                         </div>
