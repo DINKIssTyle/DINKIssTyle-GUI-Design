@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<!--
+  Created by DINKIssTyle on 2026.
+  Copyright (C) 2026 DINKI'ssTyle. All rights reserved.
+-->
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>DINKIssTyle GUI Designer</title>
+    <link rel="stylesheet" href="./src/style.css" />
+</head>
+
+<body>
+    <div id="app">
+        <!-- Toolbar -->
+        <header class="toolbar">
+            <div class="toolbar-left">
+                <h1 class="logo">GUI Designer</h1>
+            </div>
+            <div class="toolbar-center">
+                <button id="btn-new" class="toolbar-btn" title="새로 만들기">
+                    <span class="icon">📄</span>
+                    <span>새로 만들기</span>
+                </button>
+                <button id="btn-save" class="toolbar-btn" title="저장">
+                    <span class="icon">💾</span>
+                    <span>저장</span>
+                </button>
+                <button id="btn-load" class="toolbar-btn" title="불러오기">
+                    <span class="icon">📂</span>
+                    <span>불러오기</span>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button id="btn-undo" class="toolbar-btn" title="실행 취소 (Ctrl+Z)">
+                    <span class="icon">↩️</span>
+                    <span>취소</span>
+                </button>
+                <button id="btn-redo" class="toolbar-btn" title="다시 실행 (Ctrl+Y)">
+                    <span class="icon">↪️</span>
+                    <span>다시</span>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button id="btn-export-json" class="toolbar-btn export-btn" title="JSON으로 내보내기">
+                    <span class="icon">📤</span>
+                    <span>JSON</span>
+                </button>
+                <button id="btn-export-xml" class="toolbar-btn export-btn" title="XML로 내보내기">
+                    <span class="icon">📤</span>
+                    <span>XML</span>
+                </button>
+            </div>
+            <div class="toolbar-right">
+                <span id="status-text" class="status-text">준비됨</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Component Palette -->
+            <aside class="palette">
+                <h2 class="panel-title">컴포넌트</h2>
+                <div class="palette-items" id="palette-items">
+                    <div class="palette-item" draggable="true" data-type="button">
+                        <span class="palette-icon">🔘</span>
+                        <span class="palette-label">버튼</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="label">
+                        <span class="palette-icon">🏷️</span>
+                        <span class="palette-label">레이블</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="input">
+                        <span class="palette-icon">✏️</span>
+                        <span class="palette-label">입력필드</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="dropdown">
+                        <span class="palette-icon">📋</span>
+                        <span class="palette-label">드롭다운</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="checkbox">
+                        <span class="palette-icon">☑️</span>
+                        <span class="palette-label">체크박스</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="radio">
+                        <span class="palette-icon">🔘</span>
+                        <span class="palette-label">라디오</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="tab">
+                        <span class="palette-icon">📑</span>
+                        <span class="palette-label">탭바</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="table">
+                        <span class="palette-icon">📋</span>
+                        <span class="palette-label">테이블</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="section">
+                        <span class="palette-icon">📦</span>
+                        <span class="palette-label">섹션</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="card">
+                        <span class="palette-icon">🃏</span>
+                        <span class="palette-label">카드뷰</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="image">
+                        <span class="palette-icon">🖼️</span>
+                        <span class="palette-label">이미지</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="slider">
+                        <span class="palette-icon">🎚️</span>
+                        <span class="palette-label">슬라이더</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="progress">
+                        <span class="palette-icon">📊</span>
+                        <span class="palette-label">프로그레스</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="switch">
+                        <span class="palette-icon">🔛</span>
+                        <span class="palette-label">스위치</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="textarea">
+                        <span class="palette-icon">📝</span>
+                        <span class="palette-label">멀티라인</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <section class="canvas-container">
+                <div class="canvas-wrapper">
+                    <div id="canvas" class="canvas">
+                        <!-- Alignment guides will be added here -->
+                        <div id="guide-h" class="alignment-guide horizontal"></div>
+                        <div id="guide-v" class="alignment-guide vertical"></div>
+                        <!-- Elements will be added here -->
+                    </div>
+                </div>
+                <div class="canvas-info">
+                    <span id="canvas-size">800 × 600</span>
+                    <span class="canvas-mode" id="canvas-mode">고정 크기</span>
+                </div>
+            </section>
+
+            <!-- Properties Panel -->
+            <aside class="properties-panel">
+                <h2 class="panel-title">속성</h2>
+
+                <!-- Canvas Properties -->
+                <div class="property-section" id="canvas-properties">
+                    <h3 class="property-section-title">캔버스 설정</h3>
+                    <div class="property-row">
+                        <label>제목</label>
+                        <input type="text" id="canvas-title" placeholder="디자인 제목" />
+                    </div>
+                    <div class="property-row">
+                        <label>너비</label>
+                        <input type="number" id="canvas-width" value="800" min="100" />
+                    </div>
+                    <div class="property-row">
+                        <label>높이</label>
+                        <input type="number" id="canvas-height" value="600" min="100" />
+                    </div>
+                    <div class="property-row checkbox-row">
+                        <label>
+                            <input type="checkbox" id="canvas-flexible" />
+                            플렉시블 크기
+                        </label>
+                    </div>
+                    <div class="property-row">
+                        <label>배경 색상</label>
+                        <input type="color" id="canvas-bgcolor" value="#2a2a3e" />
+                    </div>
+                </div>
+
+                <!-- Element Properties -->
+                <div class="property-section" id="element-properties" style="display: none;">
+                    <h3 class="property-section-title">요소 속성</h3>
+                    <div class="property-row">
+                        <label>이름</label>
+                        <input type="text" id="elem-name" placeholder="요소 이름" />
+                    </div>
+                    <div class="property-row">
+                        <label>설명</label>
+                        <textarea id="elem-description" placeholder="요소에 대한 설명을 입력하세요"></textarea>
+                    </div>
+                    <div class="property-row">
+                        <label>ID</label>
+                        <input type="text" id="elem-id" readonly />
+                    </div>
+                    <div class="property-row">
+                        <label>타입</label>
+                        <input type="text" id="elem-type" readonly />
+                    </div>
+                    <div class="property-row-group">
+                        <div class="property-row half">
+                            <label>X</label>
+                            <input type="number" id="elem-x" />
+                        </div>
+                        <div class="property-row half">
+                            <label>Y</label>
+                            <input type="number" id="elem-y" />
+                        </div>
+                    </div>
+                    <div class="property-row-group">
+                        <div class="property-row half">
+                            <label>너비</label>
+                            <input type="number" id="elem-width" min="20" />
+                        </div>
+                        <div class="property-row half">
+                            <label>높이</label>
+                            <input type="number" id="elem-height" min="20" />
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <label>텍스트</label>
+                        <input type="text" id="elem-text" placeholder="표시할 텍스트" />
+                    </div>
+                    <div class="property-row">
+                        <label>스타일</label>
+                        <select id="elem-style">
+                            <option value="default">기본</option>
+                            <option value="primary">주요</option>
+                            <option value="secondary">보조</option>
+                            <option value="success">성공</option>
+                            <option value="warning">경고</option>
+                            <option value="danger">위험</option>
+                        </select>
+                    </div>
+
+                    <!-- Font Properties -->
+                    <div id="font-properties">
+                        <h4 class="property-section-title">폰트 설정</h4>
+                        <div class="property-row-group">
+                            <div class="property-row half">
+                                <label>크기</label>
+                                <input type="number" id="font-size" min="8" max="72" value="14" />
+                            </div>
+                            <div class="property-row half">
+                                <label>색상</label>
+                                <input type="color" id="font-color" value="#e8e8f0" />
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <div class="btn-group">
+                                <button type="button" class="btn-style-toggle" id="btn-bold"
+                                    title="볼드"><b>B</b></button>
+                                <button type="button" class="btn-style-toggle" id="btn-italic"
+                                    title="이탤릭"><i>I</i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Background Color -->
+                    <div class="property-row">
+                        <label>배경 색상</label>
+                        <div class="color-with-none">
+                            <input type="color" id="elem-bgcolor" value="#1e1e32" />
+                            <label class="none-checkbox">
+                                <input type="checkbox" id="elem-bgcolor-none" />
+                                없음
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Tab Colors (shown only for tabs) -->
+                    <div id="tab-properties" style="display: none;">
+                        <h4 class="property-section-title">탭 색상</h4>
+                        <div class="property-row">
+                            <label>활성 탭</label>
+                            <input type="color" id="tab-active-color" value="#667eea" />
+                        </div>
+                        <div class="property-row">
+                            <label>비활성 탭</label>
+                            <input type="color" id="tab-inactive-color" value="#16213e" />
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <label>텍스트 정렬</label>
+                        <div class="btn-group">
+                            <button type="button" class="btn-align" data-align="left" id="align-left"
+                                title="왼쪽">◀</button>
+                            <button type="button" class="btn-align" data-align="center" id="align-center"
+                                title="가운데">●</button>
+                            <button type="button" class="btn-align" data-align="right" id="align-right"
+                                title="오른쪽">▶</button>
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <label>부모 요소</label>
+                        <select id="elem-parent">
+                            <option value="">(없음 - 캔버스 직속)</option>
+                        </select>
+                    </div>
+
+                    <!-- Table Properties -->
+                    <div id="table-properties" style="display: none;">
+                        <h4 class="property-section-title">테이블 설정</h4>
+                        <div class="property-row-group">
+                            <div class="property-row half">
+                                <label>행</label>
+                                <input type="number" id="table-rows" min="1" value="3" />
+                            </div>
+                            <div class="property-row half">
+                                <label>열</label>
+                                <input type="number" id="table-cols" min="1" value="3" />
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <button id="btn-edit-table" class="btn-secondary">셀 내용 편집</button>
+                        </div>
+                    </div>
+
+                    <div class="property-row" style="margin-top: 16px;">
+                        <button id="btn-delete-element" class="btn-delete">요소 삭제</button>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <script src="./src/main.js" type="module"></script>
+</body>
+
+</html>
