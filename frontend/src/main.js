@@ -64,7 +64,8 @@ const componentDefaults = {
     card: { width: 200, height: 150, text: '카드', isContainer: true },
     image: { width: 150, height: 100, text: '🖼️ 이미지' },
     slider: { width: 200, height: 20, text: '━━━━●━━━━' },
-    progress: { width: 200, height: 20, text: '▓▓▓▓▓░░░░░ 50%' }
+    progress: { width: 200, height: 20, text: '▓▓▓▓▓░░░░░ 50%' },
+    divider: { width: 200, height: 10, text: '' }
 };
 
 // Container types that can have children
@@ -360,6 +361,12 @@ function designToXML(design) {
         // Switch-specific
         if (el.type === 'switch' && el.properties?.switchOn !== undefined) {
             result += `${indent}    <switchOn>${el.properties.switchOn}</switchOn>\n`;
+        }
+
+        // Divider-specific
+        if (el.type === 'divider') {
+            result += `${indent}    <Orientation>${el.properties.orientation || 'horizontal'}</Orientation>\n`;
+            if (el.properties.fullWidth) result += `${indent}    <FullSize>true</FullSize>\n`;
         }
 
         result += `${indent}  </properties>\n`;
@@ -662,6 +669,10 @@ function createElementDOM(element) {
     else if (element.type === 'switch') {
         renderSwitchContent(el, element);
     }
+    // Divider element
+    else if (element.type === 'divider') {
+        renderDividerContent(el, element);
+    }
     // Regular elements
     else {
         el.textContent = element.properties?.text || element.type;
@@ -827,6 +838,18 @@ function renderSwitchContent(el, element) {
 
     el.appendChild(track);
     el.appendChild(label);
+}
+
+function renderDividerContent(el, element) {
+    el.innerHTML = '';
+    const orientation = element.properties.orientation || 'horizontal';
+
+    el.classList.remove('divider-horizontal', 'divider-vertical');
+    el.classList.add('divider-' + orientation);
+
+    const inner = document.createElement('div');
+    inner.className = 'divider-inner';
+    el.appendChild(inner);
 }
 
 function applyFontStyles(el, element) {
@@ -1299,6 +1322,10 @@ function setupPropertyEvents() {
             deleteElement(state.selectedElement);
         }
     });
+
+    // Divider properties
+    document.getElementById('divider-orientation').addEventListener('change', updateDividerProperties);
+    document.getElementById('divider-full-size').addEventListener('change', updateDividerProperties);
 }
 
 function updateFontProperties() {
@@ -1398,6 +1425,48 @@ function setTextAlignment(align) {
     });
 
     updateElementDOM(element);
+}
+
+function updateDividerProperties() {
+    if (!state.selectedElement) return;
+    const element = getElementData(state.selectedElement);
+    if (!element || element.type !== 'divider') return;
+
+    element.properties = element.properties || {};
+    const oldOrientation = element.properties.orientation || 'horizontal';
+    const newOrientation = document.getElementById('divider-orientation').value;
+
+    element.properties.orientation = newOrientation;
+    element.properties.fullWidth = document.getElementById('divider-full-size').checked;
+
+    if (oldOrientation !== newOrientation) {
+        if (newOrientation === 'horizontal') {
+            element.height = 10;
+            element.width = Math.max(100, element.height);
+        } else {
+            element.width = 10;
+            element.height = Math.max(100, element.width);
+        }
+    }
+
+    if (element.properties.fullWidth) {
+        if (newOrientation === 'horizontal') {
+            const canvasWidth = state.design.canvas.flexible ? dom.canvas.offsetWidth : state.design.canvas.width;
+            element.width = canvasWidth;
+            element.x = 0;
+            document.getElementById('elem-width').value = element.width;
+            document.getElementById('elem-x').value = 0;
+        } else {
+            const canvasHeight = state.design.canvas.flexible ? dom.canvas.offsetHeight : state.design.canvas.height;
+            element.height = canvasHeight;
+            element.y = 0;
+            document.getElementById('elem-height').value = element.height;
+            document.getElementById('elem-y').value = 0;
+        }
+    }
+
+    updateElementDOM(element);
+    saveToHistory();
 }
 
 function updateTableSize() {
@@ -1721,6 +1790,16 @@ function showElementProperties() {
         document.getElementById('table-cols').value = element.properties?.cols || 3;
     } else {
         tableProps.style.display = 'none';
+    }
+
+    // Divider properties
+    const dividerProps = document.getElementById('divider-properties');
+    if (element.type === 'divider') {
+        dividerProps.style.display = 'block';
+        document.getElementById('divider-orientation').value = element.properties?.orientation || 'horizontal';
+        document.getElementById('divider-full-size').checked = element.properties?.fullWidth || false;
+    } else {
+        dividerProps.style.display = 'none';
     }
 }
 

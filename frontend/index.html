@@ -80,6 +80,10 @@
                         <span class="palette-icon">📋</span>
                         <span class="palette-label">테이블</span>
                     </div>
+                    <div class="palette-item" draggable="true" data-type="divider">
+                        <span class="palette-icon">➖</span>
+                        <span class="palette-label">디바이더</span>
+                    </div>
 
                     <!-- Input Group -->
                     <div class="palette-group-title">입력</div>
@@ -100,17 +104,18 @@
                         <span class="palette-label">체크박스</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="radio">
-                        <span class="palette-icon">🔘</span>
+                        <span class="palette-icon">�</span>
                         <span class="palette-label">라디오</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="switch">
-                        <span class="palette-icon">🔛</span>
+                        <span class="palette-icon">�</span>
                         <span class="palette-label">스위치</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="dropdown">
                         <span class="palette-icon">📋</span>
                         <span class="palette-label">드롭다운</span>
                     </div>
+
 
                     <!-- Display Group -->
                     <div class="palette-group-title">표시</div>
@@ -387,6 +392,24 @@
                         </div>
                         <div class="property-row">
                             <button id="btn-edit-table" class="btn-secondary">셀 내용 편집</button>
+                        </div>
+                    </div>
+
+                    <!-- Divider Properties -->
+                    <div id="divider-properties" style="display: none;">
+                        <h4 class="property-section-title">디바이더 설정</h4>
+                        <div class="property-row">
+                            <label>방향</label>
+                            <select id="divider-orientation">
+                                <option value="horizontal">가로 (Horizontal)</option>
+                                <option value="vertical">세로 (Vertical)</option>
+                            </select>
+                        </div>
+                        <div class="property-row checkbox-row">
+                            <label>
+                                <input type="checkbox" id="divider-full-size" />
+                                꽉 채우기 (Full Size)
+                            </label>
                         </div>
                     </div>
 

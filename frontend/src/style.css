@@ -1206,3 +1206,33 @@ input[type="color"]::-webkit-color-swatch {
     color: white;
     border-color: var(--accent-danger);
 }
+
+/* ===== Divider Component ===== */
+.canvas-element[data-type="divider"] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    overflow: visible;
+}
+
+.divider-inner {
+    background-color: var(--border-color);
+    pointer-events: none;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+    /* Slight bevel effect */
+}
+
+/* Horizontal: element is wide, inner line is full width */
+.divider-horizontal .divider-inner {
+    width: 100%;
+    height: 2px;
+}
+
+/* Vertical: element is tall, inner line is full height */
+.divider-vertical .divider-inner {
+    width: 2px;
+    height: 100%;
+}
