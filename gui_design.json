@@ -1,0 +1,65 @@
+{
+  "canvas": {
+    "width": 800,
+    "height": 600,
+    "flexible": false,
+    "title": "New Design"
+  },
+  "elements": [
+    {
+      "id": "elem_1",
+      "type": "label",
+      "name": "label_1",
+      "description": "",
+      "x": 19,
+      "y": 18,
+      "width": 64,
+      "height": 23,
+      "properties": {
+        "text": "레이블",
+        "style": "default"
+      }
+    },
+    {
+      "id": "elem_3",
+      "type": "textarea",
+      "name": "textarea_3",
+      "description": "",
+      "x": 19,
+      "y": 65,
+      "width": 200,
+      "height": 100,
+      "properties": {
+        "text": "멀티라인\n텍스트 입력...",
+        "style": "default"
+      }
+    },
+    {
+      "id": "elem_4",
+      "type": "dropdown",
+      "name": "dropdown_4",
+      "description": "",
+      "x": 89,
+      "y": 12,
+      "width": 128,
+      "height": 36,
+      "properties": {
+        "text": "선택하세요",
+        "style": "default"
+      }
+    },
+    {
+      "id": "elem_5",
+      "type": "tab",
+      "name": "tab_5",
+      "description": "",
+      "x": 270,
+      "y": 129,
+      "width": 300,
+      "height": 36,
+      "properties": {
+        "style": "default"
+      }
+    }
+  ]
+}

@@ -740,7 +740,8 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: var(--bg-secondary);
+    background: transparent;
+    /* Changed from var(--bg-secondary) to allow container bg to show */
 }
 
 .table-cell.header {
@@ -1060,4 +1061,117 @@ input[type="color"]::-webkit-color-swatch {
     margin: 12px 0 8px 0;
     padding-bottom: 4px;
     border-bottom: 1px solid var(--border-color);
+}
+
+/* ===== Palette Groups ===== */
+.palette-group-title {
+    width: 100%;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 12px 0 8px 0;
+    padding-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Tab Component Refactor ===== */
+.canvas-element[data-type="tab"] {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+    border: none;
+}
+
+.tab-header {
+    display: flex;
+    flex-direction: row;
+    background: transparent;
+    border-bottom: 1px solid var(--border-color);
+    gap: 2px;
+}
+
+.tab-item {
+    padding: 10px 24px;
+    min-width: 80px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 0;
+    margin-bottom: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    user-select: none;
+    transition: all 0.2s;
+    position: relative;
+    top: 1px;
+}
+
+.tab-item.active {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--bg-panel);
+    color: var(--text-primary);
+    font-weight: 600;
+    z-index: 2;
+    padding-top: 11px;
+    /* Slightly taller */
+    margin-top: -1px;
+    /* Slight pop up */
+}
+
+.tab-body {
+    flex: 1;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    /* The rectangle box */
+    border-top: none;
+    /* Header covers top */
+    padding: 10px;
+    position: relative;
+    min-height: 50px;
+}
+
+/* Drop zone indicator for Tab Body */
+.tab-body.drag-over {
+    background: rgba(100, 100, 255, 0.1);
+    box-shadow: inset 0 0 0 2px var(--accent-primary);
+}
+
+/* Tab Management List */
+.tab-list-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.tab-list-item input {
+    flex: 1;
+    height: 28px;
+    margin-right: 6px;
+}
+
+.btn-icon-small {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-small:hover {
+    background: var(--accent-danger);
+    color: white;
+    border-color: var(--accent-danger);
 }

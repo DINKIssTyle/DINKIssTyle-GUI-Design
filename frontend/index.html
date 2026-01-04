@@ -62,29 +62,15 @@
             <aside class="palette">
                 <h2 class="panel-title">컴포넌트</h2>
                 <div class="palette-items" id="palette-items">
-                    <div class="palette-item" draggable="true" data-type="button">
-                        <span class="palette-icon">🔘</span>
-                        <span class="palette-label">버튼</span>
+                    <!-- Layout Group -->
+                    <div class="palette-group-title">레이아웃</div>
+                    <div class="palette-item" draggable="true" data-type="section">
+                        <span class="palette-icon">📦</span>
+                        <span class="palette-label">섹션</span>
                     </div>
-                    <div class="palette-item" draggable="true" data-type="label">
-                        <span class="palette-icon">🏷️</span>
-                        <span class="palette-label">레이블</span>
-                    </div>
-                    <div class="palette-item" draggable="true" data-type="input">
-                        <span class="palette-icon">✏️</span>
-                        <span class="palette-label">입력필드</span>
-                    </div>
-                    <div class="palette-item" draggable="true" data-type="dropdown">
-                        <span class="palette-icon">📋</span>
-                        <span class="palette-label">드롭다운</span>
-                    </div>
-                    <div class="palette-item" draggable="true" data-type="checkbox">
-                        <span class="palette-icon">☑️</span>
-                        <span class="palette-label">체크박스</span>
-                    </div>
-                    <div class="palette-item" draggable="true" data-type="radio">
-                        <span class="palette-icon">🔘</span>
-                        <span class="palette-label">라디오</span>
+                    <div class="palette-item" draggable="true" data-type="card">
+                        <span class="palette-icon">🃏</span>
+                        <span class="palette-label">카드뷰</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="tab">
                         <span class="palette-icon">📑</span>
@@ -94,13 +80,43 @@
                         <span class="palette-icon">📋</span>
                         <span class="palette-label">테이블</span>
                     </div>
-                    <div class="palette-item" draggable="true" data-type="section">
-                        <span class="palette-icon">📦</span>
-                        <span class="palette-label">섹션</span>
+
+                    <!-- Input Group -->
+                    <div class="palette-group-title">입력</div>
+                    <div class="palette-item" draggable="true" data-type="button">
+                        <span class="palette-icon">🔘</span>
+                        <span class="palette-label">버튼</span>
                     </div>
-                    <div class="palette-item" draggable="true" data-type="card">
-                        <span class="palette-icon">🃏</span>
-                        <span class="palette-label">카드뷰</span>
+                    <div class="palette-item" draggable="true" data-type="input">
+                        <span class="palette-icon">✏️</span>
+                        <span class="palette-label">입력필드</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="textarea">
+                        <span class="palette-icon">📝</span>
+                        <span class="palette-label">멀티라인</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="checkbox">
+                        <span class="palette-icon">☑️</span>
+                        <span class="palette-label">체크박스</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="radio">
+                        <span class="palette-icon">🔘</span>
+                        <span class="palette-label">라디오</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="switch">
+                        <span class="palette-icon">🔛</span>
+                        <span class="palette-label">스위치</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="dropdown">
+                        <span class="palette-icon">📋</span>
+                        <span class="palette-label">드롭다운</span>
+                    </div>
+
+                    <!-- Display Group -->
+                    <div class="palette-group-title">표시</div>
+                    <div class="palette-item" draggable="true" data-type="label">
+                        <span class="palette-icon">🏷️</span>
+                        <span class="palette-label">레이블</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="image">
                         <span class="palette-icon">🖼️</span>
@@ -113,14 +129,6 @@
                     <div class="palette-item" draggable="true" data-type="progress">
                         <span class="palette-icon">📊</span>
                         <span class="palette-label">프로그레스</span>
-                    </div>
-                    <div class="palette-item" draggable="true" data-type="switch">
-                        <span class="palette-icon">🔛</span>
-                        <span class="palette-label">스위치</span>
-                    </div>
-                    <div class="palette-item" draggable="true" data-type="textarea">
-                        <span class="palette-icon">📝</span>
-                        <span class="palette-label">멀티라인</span>
                     </div>
                 </div>
             </aside>
@@ -214,6 +222,7 @@
                     <div class="property-row">
                         <label>텍스트</label>
                         <input type="text" id="elem-text" placeholder="표시할 텍스트" />
+                        <textarea id="elem-text-multi" placeholder="내용 (멀티라인)" style="display: none;"></textarea>
                     </div>
                     <div class="property-row">
                         <label>스타일</label>
@@ -263,15 +272,52 @@
                     </div>
 
                     <!-- Tab Colors (shown only for tabs) -->
-                    <div id="tab-properties" style="display: none;">
-                        <h4 class="property-section-title">탭 색상</h4>
-                        <div class="property-row">
-                            <label>활성 탭</label>
-                            <input type="color" id="tab-active-color" value="#667eea" />
+                    <!-- Tab Management (shown only for tabs) -->
+                    <div id="tab-management" style="display: none;">
+                        <h4 class="property-section-title">탭 관리</h4>
+                        <div id="tab-list-container" class="tab-list-container">
+                            <!-- JS will populate this -->
+                        </div>
+                        <button type="button" id="btn-add-tab" class="btn-full"
+                            style="margin-top: 8px; width: 100%; padding: 6px;">＋ 탭 추가</button>
+                    </div>
+
+                    <!-- Tab Appearance (shown only for tabs) -->
+                    <div id="tab-appearance" style="display: none;">
+                        <h4 class="property-section-title">탭 스타일</h4>
+
+                        <div class="property-label-small" style="font-size: 11px; color: #888; margin-top: 8px;">활성 탭
                         </div>
                         <div class="property-row">
-                            <label>비활성 탭</label>
-                            <input type="color" id="tab-inactive-color" value="#16213e" />
+                            <label>배경</label>
+                            <input type="color" id="tab-active-bg" value="#667eea" />
+                        </div>
+                        <div class="property-row-group">
+                            <div class="property-row half">
+                                <label>글자색</label>
+                                <input type="color" id="tab-active-font-color" value="#ffffff" />
+                            </div>
+                            <div class="property-row half">
+                                <label>크기</label>
+                                <input type="number" id="tab-active-font-size" value="13" min="8" />
+                            </div>
+                        </div>
+
+                        <div class="property-label-small" style="font-size: 11px; color: #888; margin-top: 8px;">비활성 탭
+                        </div>
+                        <div class="property-row">
+                            <label>배경</label>
+                            <input type="color" id="tab-inactive-bg" value="#16213e" />
+                        </div>
+                        <div class="property-row-group">
+                            <div class="property-row half">
+                                <label>글자색</label>
+                                <input type="color" id="tab-inactive-font-color" value="#cccccc" />
+                            </div>
+                            <div class="property-row half">
+                                <label>크기</label>
+                                <input type="number" id="tab-inactive-font-size" value="13" min="8" />
+                            </div>
                         </div>
                     </div>
                     <div class="property-row">
@@ -290,6 +336,17 @@
                         <select id="elem-parent">
                             <option value="">(없음 - 캔버스 직속)</option>
                         </select>
+                    </div>
+
+                    <!-- Section Properties -->
+                    <div id="section-properties" style="display: none;">
+                        <h4 class="property-section-title">섹션 설정</h4>
+                        <div class="property-row checkbox-row">
+                            <label>
+                                <input type="checkbox" id="section-full-width" />
+                                전체 너비 채우기
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Table Properties -->

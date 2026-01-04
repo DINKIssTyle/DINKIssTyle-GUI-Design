@@ -45,7 +45,18 @@ const componentDefaults = {
     checkbox: { width: 120, height: 24, text: '☐ 체크박스' },
     radio: { width: 120, height: 24, text: '○ 라디오' },
     switch: { width: 100, height: 30, text: '스위치', switchOn: false },
-    tab: { width: 300, height: 36, text: '', tabCount: 3 },
+    tab: {
+        width: 400,
+        height: 300,
+        text: '',
+        tabs: [
+            { id: 't1', label: '탭1' },
+            { id: 't2', label: '탭2' },
+            { id: 't3', label: '탭3' }
+        ],
+        activeTab: 0,
+        isContainer: true
+    },
     table: { width: 250, height: 120, text: '', rows: 3, cols: 3 },
     section: { width: 250, height: 180, text: '섹션', isContainer: true },
     card: { width: 200, height: 150, text: '카드', isContainer: true },
@@ -55,7 +66,7 @@ const componentDefaults = {
 };
 
 // Container types that can have children
-const containerTypes = ['section', 'card'];
+const containerTypes = ['section', 'card', 'tab'];
 
 // ===== Initialize =====
 document.addEventListener('DOMContentLoaded', init);
@@ -442,10 +453,39 @@ function addElementToCanvas(type, x, y, parentId = null) {
     x = Math.max(0, Math.min(x - defaults.width / 2, state.design.canvas.width - defaults.width));
     y = Math.max(0, Math.min(y - defaults.height / 2, state.design.canvas.height - defaults.height));
 
+    // Determine parent if not provided (check for containers at drop location)
+    if (!parentId) {
+        // Find topmost container at x, y
+        // We iterate in reverse order (topmost first) but z-index matters.
+        // Simple check: iterate all elements, filter containers, check bounds, pick highest z-index.
+        const containers = state.design.elements.filter(el =>
+            containerTypes.includes(el.type) &&
+            x >= el.x && x <= el.x + el.width &&
+            y >= el.y && y <= el.y + el.height
+        );
+
+        if (containers.length > 0) {
+            // Sort by z-index descending
+            containers.sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
+            parentId = containers[0].id;
+        }
+    }
+
     // Assign z-index (containers get lower, children get higher)
     let zIndex = ++state.zIndexCounter;
     if (containerTypes.includes(type)) {
         zIndex = 50 + state.elementCounter; // Containers have lower z-index
+    }
+
+    // Determine parentTabIndex if parent is a Tab
+    let parentTabIndex = undefined;
+    if (parentId) {
+        const parent = getElementData(parentId);
+        if (parent && parent.type === 'tab') {
+            parentTabIndex = parent.properties.activeTab || 0;
+            // Also adjust X, Y relative to parent? No, we use absolute coordinates on canvas.
+            // But we might want to ensure it's inside parent body. Mouse drop handles that.
+        }
     }
 
     const element = {
@@ -454,6 +494,7 @@ function addElementToCanvas(type, x, y, parentId = null) {
         name: `${type}_${state.elementCounter}`,
         description: '',
         parentId: parentId || null,
+        parentTabIndex: parentTabIndex,
         x: Math.round(x),
         y: Math.round(y),
         width: defaults.width,
@@ -475,9 +516,8 @@ function addElementToCanvas(type, x, y, parentId = null) {
             cols: defaults.cols || 3,
             cells: type === 'table' ? generateDefaultCells(defaults.rows || 3, defaults.cols || 3) : null,
             // Tab-specific
-            tabCount: defaults.tabCount || 3,
-            tabLabels: type === 'tab' ? ['탭1', '탭2', '탭3'] : null,
-            activeTab: 0,
+            tabs: defaults.tabs ? JSON.parse(JSON.stringify(defaults.tabs)) : undefined, // Deep copy
+            activeTab: defaults.activeTab !== undefined ? defaults.activeTab : 0,
             // Switch-specific
             switchOn: defaults.switchOn || false
         },
@@ -486,6 +526,12 @@ function addElementToCanvas(type, x, y, parentId = null) {
 
     state.design.elements.push(element);
     createElementDOM(element);
+
+    // If parent is Tab, update visibility immediately
+    if (parentId && parentTabIndex !== undefined) {
+        updateTabChildrenVisibility(parentId);
+    }
+
     selectElement(id);
     saveToHistory();
     setStatus(`${type} 추가됨`);
@@ -596,17 +642,99 @@ function renderTableContent(el, element) {
 function renderTabContent(el, element) {
     el.innerHTML = '';
     const props = element.properties || {};
-    const tabLabels = props.tabLabels || ['탭1', '탭2', '탭3'];
+    const tabs = props.tabs || [
+        { id: 't1', label: '탭1' },
+        { id: 't2', label: '탭2' },
+        { id: 't3', label: '탭3' }
+    ];
     const activeTab = props.activeTab || 0;
 
-    tabLabels.forEach((label, idx) => {
+    // Header
+    const header = document.createElement('div');
+    header.className = 'tab-header';
+
+    const textAlign = props.textAlign || 'left';
+    if (textAlign === 'center') header.style.justifyContent = 'center';
+    else if (textAlign === 'right') header.style.justifyContent = 'flex-end';
+    else header.style.justifyContent = 'flex-start';
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'tab-body';
+
+    tabs.forEach((tabInfo, idx) => {
         const tab = document.createElement('div');
         tab.className = 'tab-item';
-        if (idx === activeTab) tab.classList.add('active');
-        tab.textContent = label;
-        el.appendChild(tab);
+        if (idx === activeTab) {
+            tab.classList.add('active');
+
+            // Active Tab Styles
+            if (props.tabActiveColor) tab.style.backgroundColor = props.tabActiveColor;
+            if (props.fontActiveColor) tab.style.color = props.fontActiveColor;
+            if (props.fontActiveSize) tab.style.fontSize = props.fontActiveSize + 'px';
+            if (props.fontActiveBold) tab.style.fontWeight = 'bold';
+        } else {
+            // Inactive Tab Styles
+            if (props.tabInactiveColor) tab.style.backgroundColor = props.tabInactiveColor;
+            if (props.fontInactiveColor) tab.style.color = props.fontInactiveColor;
+            if (props.fontInactiveSize) tab.style.fontSize = props.fontInactiveSize + 'px';
+        }
+
+        tab.textContent = tabInfo.label;
+
+        // Click to switch tab
+        tab.addEventListener('mousedown', (e) => {
+            // Prevent drag of the whole component if strictly clicking a tab (optional, but good for UX)
+            // But we might want to select it.
+            // Let's just switch tab. Selection happens via bubbling to handleElementMouseDown.
+            if (activeTab !== idx) {
+                switchTab(element.id, idx);
+            }
+        });
+
+        header.appendChild(tab);
+    });
+
+    el.appendChild(header);
+    el.appendChild(body);
+}
+
+function switchTab(elementId, index) {
+    const element = getElementData(elementId);
+    if (!element) return;
+
+    element.properties = element.properties || {};
+    element.properties.activeTab = index;
+
+    updateElementDOM(element);
+    updateTabChildrenVisibility(elementId);
+    saveToHistory();
+}
+
+function updateTabChildrenVisibility(parentId) {
+    const parent = getElementData(parentId);
+    if (!parent || parent.type !== 'tab') return;
+
+    const activeIndex = parent.properties.activeTab || 0;
+
+    state.design.elements.forEach(el => {
+        if (el.parentId === parentId) {
+            const elDOM = document.getElementById(el.id);
+            if (elDOM) {
+                // Default to tab 0 if undefined
+                const childTabIndex = el.parentTabIndex !== undefined ? el.parentTabIndex : 0;
+
+                if (childTabIndex === activeIndex) {
+                    elDOM.style.display = 'flex';
+                } else {
+                    elDOM.style.display = 'none';
+                }
+            }
+        }
     });
 }
+
+
 
 function renderSwitchContent(el, element) {
     el.innerHTML = '';
@@ -645,9 +773,15 @@ function updateElementDOM(element) {
     const el = document.getElementById(element.id);
     if (!el) return;
 
-    el.style.left = element.x + 'px';
+    if (element.properties?.fullWidth && element.type === 'section') {
+        el.style.left = '0';
+        el.style.width = '100%';
+    } else {
+        el.style.left = element.x + 'px';
+        el.style.width = element.width + 'px';
+    }
+
     el.style.top = element.y + 'px';
-    el.style.width = element.width + 'px';
     el.style.height = element.height + 'px';
     el.style.zIndex = element.zIndex || 100;
 
@@ -985,6 +1119,7 @@ function setupPropertyEvents() {
     document.getElementById('elem-width').addEventListener('input', updateElementFromInput);
     document.getElementById('elem-height').addEventListener('input', updateElementFromInput);
     document.getElementById('elem-text').addEventListener('input', updateElementFromInput);
+    document.getElementById('elem-text-multi').addEventListener('input', updateElementFromInput);
     document.getElementById('elem-style').addEventListener('change', updateElementFromInput);
 
     // Text alignment buttons
@@ -1005,9 +1140,34 @@ function setupPropertyEvents() {
     document.getElementById('elem-bgcolor').addEventListener('input', updateBackgroundColor);
     document.getElementById('elem-bgcolor-none').addEventListener('change', toggleBackgroundNone);
 
-    // Tab colors
-    document.getElementById('tab-active-color').addEventListener('input', updateTabColors);
-    document.getElementById('tab-inactive-color').addEventListener('input', updateTabColors);
+    // Tab Management & Styling
+    document.getElementById('btn-add-tab').addEventListener('click', addTab);
+
+    // Tab Styling Inputs
+    const tabStyleInputs = {
+        'tab-active-bg': 'tabActiveColor',
+        'tab-active-font-color': 'fontActiveColor',
+        'tab-active-font-size': 'fontActiveSize',
+        'tab-inactive-bg': 'tabInactiveColor',
+        'tab-inactive-font-color': 'fontInactiveColor',
+        'tab-inactive-font-size': 'fontInactiveSize'
+    };
+
+    for (const [id, prop] of Object.entries(tabStyleInputs)) {
+        document.getElementById(id).addEventListener('input', (e) => {
+            updateTabStyle(prop, e.target.value);
+        });
+    }
+
+    // Legacy or direct color inputs (if needed, but we replaced HTML)
+    // document.getElementById('tab-active-color').addEventListener('input', updateTabColors);
+    // document.getElementById('tab-inactive-color').addEventListener('input', updateTabColors);
+
+    // Section Full Width
+    const sectionFullWidth = document.getElementById('section-full-width');
+    if (sectionFullWidth) {
+        sectionFullWidth.addEventListener('change', updateSectionFullWidth);
+    }
 
     // Parent element selector
     document.getElementById('elem-parent').addEventListener('change', updateElementParent);
@@ -1322,7 +1482,22 @@ function showElementProperties() {
     document.getElementById('elem-y').value = element.y;
     document.getElementById('elem-width').value = element.width;
     document.getElementById('elem-height').value = element.height;
-    document.getElementById('elem-text').value = element.properties?.text || '';
+
+    // Toggle Text Input / Textarea
+    const isTextarea = element.type === 'textarea';
+    const textInput = document.getElementById('elem-text');
+    const textArea = document.getElementById('elem-text-multi');
+
+    if (isTextarea) {
+        textInput.style.display = 'none';
+        textArea.style.display = 'block';
+        textArea.value = element.properties?.text || '';
+    } else {
+        textInput.style.display = 'block';
+        textArea.style.display = 'none';
+        textInput.value = element.properties?.text || '';
+    }
+
     document.getElementById('elem-style').value = element.properties?.style || 'default';
 
     // Font properties
@@ -1333,6 +1508,53 @@ function showElementProperties() {
 
     // Background color
     document.getElementById('elem-bgcolor').value = element.properties?.bgColor || '#1e1e32';
+    document.getElementById('elem-bgcolor-none').checked = element.properties?.bgNone || false;
+
+    // Tab Management & Appearance
+    const tabMgmt = document.getElementById('tab-management');
+    const tabAppear = document.getElementById('tab-appearance');
+    const fontProps = document.getElementById('font-properties');
+    const textInputRow = document.getElementById('elem-text').closest('.property-row');
+
+    if (element.type === 'tab') {
+        if (tabMgmt) tabMgmt.style.display = 'block';
+        if (tabAppear) tabAppear.style.display = 'block';
+        if (fontProps) fontProps.style.display = 'none';
+        if (textInputRow) textInputRow.style.display = 'none';
+
+        renderTabList(element);
+
+        // Populate inputs
+        document.getElementById('tab-active-bg').value = element.properties?.tabActiveColor || '#667eea';
+        document.getElementById('tab-active-font-color').value = element.properties?.fontActiveColor || '#ffffff';
+        document.getElementById('tab-active-font-size').value = element.properties?.fontActiveSize || 13;
+
+        document.getElementById('tab-inactive-bg').value = element.properties?.tabInactiveColor || '#16213e';
+        document.getElementById('tab-inactive-font-color').value = element.properties?.fontInactiveColor || '#cccccc';
+        document.getElementById('tab-inactive-font-size').value = element.properties?.fontInactiveSize || 13;
+
+    } else {
+        if (tabMgmt) tabMgmt.style.display = 'none';
+        if (tabAppear) tabAppear.style.display = 'none';
+        if (fontProps) fontProps.style.display = 'block';
+        if (textInputRow) textInputRow.style.display = ''; // Revert to CSS default
+    }
+
+    // Section Properties
+    const sectionProps = document.getElementById('section-properties');
+    if (element.type === 'section') {
+        if (sectionProps) sectionProps.style.display = 'block';
+        const isFull = element.properties?.fullWidth || false;
+        const widthCheck = document.getElementById('section-full-width');
+        if (widthCheck) widthCheck.checked = isFull;
+
+        document.getElementById('elem-x').disabled = isFull;
+        document.getElementById('elem-width').disabled = isFull;
+    } else {
+        if (sectionProps) sectionProps.style.display = 'none';
+        document.getElementById('elem-x').disabled = false;
+        document.getElementById('elem-width').disabled = false;
+    }
 
     // Text alignment buttons
     const align = element.properties?.textAlign || 'center';
@@ -1382,7 +1604,14 @@ function updateElementFromInput() {
     element.width = parseInt(document.getElementById('elem-width').value) || 100;
     element.height = parseInt(document.getElementById('elem-height').value) || 40;
     element.properties = element.properties || {};
-    element.properties.text = document.getElementById('elem-text').value;
+
+    const isTextarea = element.type === 'textarea';
+    if (isTextarea) {
+        element.properties.text = document.getElementById('elem-text-multi').value;
+    } else {
+        element.properties.text = document.getElementById('elem-text').value;
+    }
+
     element.properties.style = document.getElementById('elem-style').value;
 
     // Update DOM using the centralized function
@@ -1405,6 +1634,13 @@ function clearCanvas() {
 function renderElementsFromState() {
     state.design.elements.forEach(element => {
         createElementDOM(element);
+    });
+
+    // Update Tab Visibility initially
+    state.design.elements.forEach(element => {
+        if (element.type === 'tab') {
+            updateTabChildrenVisibility(element.id);
+        }
     });
 }
 
@@ -1501,3 +1737,109 @@ function moveChildrenWithParent(parentId, dx, dy) {
     });
 }
 
+
+// ===== Tab Management =====
+function renderTabList(element) {
+    const container = document.getElementById('tab-list-container');
+    container.innerHTML = '';
+
+    if (!element.properties.tabs) return;
+
+    element.properties.tabs.forEach((tab, index) => {
+        const row = document.createElement('div');
+        row.className = 'tab-list-item';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = tab.label;
+        input.addEventListener('input', (e) => {
+            tab.label = e.target.value;
+            updateElementDOM(element);
+        });
+        input.addEventListener('change', saveToHistory);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-icon-small';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.onclick = () => removeTab(element.id, index);
+
+        row.appendChild(input);
+        row.appendChild(deleteBtn);
+        container.appendChild(row);
+    });
+}
+
+function addTab() {
+    if (!state.selectedElement) return;
+    const element = getElementData(state.selectedElement);
+    if (!element || element.type !== 'tab') return;
+
+    element.properties.tabs = element.properties.tabs || [];
+    const newId = 't' + (element.properties.tabs.length + 1) + '_' + Date.now().toString(36);
+    element.properties.tabs.push({ id: newId, label: `탭 ${element.properties.tabs.length + 1}` });
+
+    renderTabList(element);
+    updateElementDOM(element);
+    updateTabChildrenVisibility(element.id);
+    saveToHistory();
+}
+
+function removeTab(elementId, index) {
+    const element = getElementData(elementId);
+    if (!element || !element.properties.tabs || element.properties.tabs.length <= 1) {
+        alert('최소 하나의 탭은 있어야 합니다.');
+        return;
+    }
+
+    element.properties.tabs.splice(index, 1);
+
+    // Adjust activeTab if needed
+    if (element.properties.activeTab >= index) {
+        element.properties.activeTab = Math.max(0, element.properties.activeTab - 1);
+    }
+
+    renderTabList(element);
+    updateElementDOM(element);
+    updateTabChildrenVisibility(elementId);
+    saveToHistory();
+}
+
+function updateTabStyle(prop, value) {
+    if (!state.selectedElement) return;
+    const element = getElementData(state.selectedElement);
+    if (!element) return;
+
+    element.properties = element.properties || {};
+    element.properties[prop] = value;
+
+    updateElementDOM(element);
+}
+
+function updateSectionFullWidth() {
+    if (!state.selectedElement) return;
+    const element = getElementData(state.selectedElement);
+    if (!element || element.type !== 'section') return;
+
+    element.properties = element.properties || {};
+    const isFull = document.getElementById('section-full-width').checked;
+    element.properties.fullWidth = isFull;
+
+    if (isFull) {
+        // Update model to match canvas (optional, but good for export)
+        // But mainly we rely on CSS for live behavior
+        element.x = 0;
+        element.width = state.design.canvas.width;
+
+        // Update inputs
+        document.getElementById('elem-x').value = 0;
+        document.getElementById('elem-width').value = state.design.canvas.width;
+        document.getElementById('elem-x').disabled = true;
+        document.getElementById('elem-width').disabled = true;
+    } else {
+        document.getElementById('elem-x').disabled = false;
+        document.getElementById('elem-width').disabled = false;
+    }
+
+    updateElementDOM(element);
+    saveToHistory();
+}
