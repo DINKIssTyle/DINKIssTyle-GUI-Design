@@ -19,3 +19,5 @@ export function SaveDesign(arg1:string):Promise<string>;
 export function SaveDesignAs(arg1:string):Promise<string>;
 
 export function SetDesign(arg1:main.GUIDesign):Promise<void>;
+
+export function ShowConfirmDialog(arg1:string,arg2:string):Promise<boolean>;

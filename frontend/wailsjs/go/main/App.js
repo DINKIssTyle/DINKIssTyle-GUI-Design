@@ -37,3 +37,7 @@ export function SaveDesignAs(arg1) {
 export function SetDesign(arg1) {
   return window['go']['main']['App']['SetDesign'](arg1);
 }
+
+export function ShowConfirmDialog(arg1, arg2) {
+  return window['go']['main']['App']['ShowConfirmDialog'](arg1, arg2);
+}

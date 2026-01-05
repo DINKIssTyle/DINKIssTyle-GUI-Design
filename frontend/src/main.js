@@ -283,8 +283,22 @@ function setupToolbarEvents() {
 async function newDesign() {
     console.log('newDesign requested');
     if (state.design.elements.length > 0) {
-        // Use a slight delay or check if it's already in process to avoid double triggers on Mac
-        const confirmed = confirm('현재 디자인을 버리고 새로 시작하시겠습니까?');
+        // Use Wails native dialog for cross-platform compatibility (especially macOS)
+        let confirmed = false;
+        if (window.go?.main?.App?.ShowConfirmDialog) {
+            try {
+                confirmed = await window.go.main.App.ShowConfirmDialog(
+                    '새로 만들기',
+                    '현재 디자인을 버리고 새로 시작하시겠습니까?'
+                );
+            } catch (e) {
+                console.error('Native dialog failed, falling back to confirm():', e);
+                confirmed = confirm('현재 디자인을 버리고 새로 시작하시겠습니까?');
+            }
+        } else {
+            // Browser fallback
+            confirmed = confirm('현재 디자인을 버리고 새로 시작하시겠습니까?');
+        }
         if (!confirmed) return;
     }
 

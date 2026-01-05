@@ -91,6 +91,20 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
+// ShowConfirmDialog shows a native confirmation dialog and returns user's choice
+func (a *App) ShowConfirmDialog(title string, message string) bool {
+	result, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type:    runtime.QuestionDialog,
+		Title:   title,
+		Message: message,
+	})
+	if err != nil {
+		return false
+	}
+	// QuestionDialog returns "Yes" or "No"
+	return result == "Yes"
+}
+
 // GetDesign returns the current design
 func (a *App) GetDesign() GUIDesign {
 	return a.currentDesign
