@@ -1243,10 +1243,7 @@ function createElementDOM(element) {
     // Container elements (section, card)
     else if (containerTypes.includes(element.type) && element.type !== 'tab') {
         el.classList.add('is-container');
-        const label = document.createElement('span');
-        label.className = 'container-label';
-        label.textContent = element.properties?.text || element.type;
-        el.appendChild(label);
+        // Label removed as per user request
     }
     // Table element
     else if (element.type === 'table') {
