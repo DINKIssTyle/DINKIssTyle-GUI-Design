@@ -116,11 +116,12 @@ function init() {
     setupSettingsEvents();
     setupLayoutEvents();
 
+    saveToHistory(); // Record initial blank state (Index 0)
+
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
 
     // Initialize history
-    saveToHistory();
     updateUndoRedoButtons();
 
     setStatus('준비됨');
@@ -300,8 +301,16 @@ async function newDesign() {
     };
     state.selectedElements = [];
     state.elementCounter = 0;
+
+    // Reset history for new design
+    state.history = [];
+    state.historyIndex = -1;
+
     clearCanvas();
     updateCanvasFromState();
+
+    saveToHistory(); // Record the new blank state as index 0
+
     setStatus('새 디자인 생성됨');
 
     // Sync to backend if available
@@ -2900,18 +2909,30 @@ function setupZoomEvents() {
 
 // ===== History (Undo/Redo) =====
 function saveToHistory() {
+    // Deep clone the design
+    const snapshot = JSON.parse(JSON.stringify(state.design));
+
+    // Prevent duplicate consecutive entries
+    if (state.history.length > 0 && state.historyIndex >= 0) {
+        const lastSnapshot = state.history[state.historyIndex];
+        if (JSON.stringify(lastSnapshot) === JSON.stringify(snapshot)) {
+            // No changes, skip
+            return;
+        }
+    }
+
     // Remove future history if we're not at the end
     if (state.historyIndex < state.history.length - 1) {
         state.history = state.history.slice(0, state.historyIndex + 1);
     }
 
-    // Deep clone the design
-    const snapshot = JSON.parse(JSON.stringify(state.design));
     state.history.push(snapshot);
 
     // Limit history size
     if (state.history.length > state.maxHistory) {
         state.history.shift();
+        // Since we shifted, indices have changed, but historyIndex should stay at the last element
+        state.historyIndex = state.history.length - 1;
     } else {
         state.historyIndex++;
     }
