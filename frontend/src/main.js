@@ -33,7 +33,9 @@ const state = {
     // Undo/Redo
     history: [],
     historyIndex: -1,
-    maxHistory: 50
+    maxHistory: 50,
+    // Clipboard
+    clipboard: null
 };
 
 // ===== DOM Elements =====
@@ -113,26 +115,97 @@ function init() {
     setStatus('준비됨');
 }
 
+function isInputActive() {
+    const active = document.activeElement;
+    if (!active) return false;
+    const tags = ['INPUT', 'TEXTAREA', 'SELECT'];
+    if (tags.includes(active.tagName)) return true;
+    if (active.isContentEditable) return true;
+    return false;
+}
+
 function handleKeyDown(e) {
-    // Ctrl+Z = Undo
-    if (e.ctrlKey && e.key === 'z') {
+    const isMod = e.ctrlKey || e.metaKey;
+
+    // 만약 입력 필드에 포커스가 있다면 단축키 처리를 방지 (Cmd+A/C/V 같은 기본 브라우저 기능은 허용)
+    const typing = isInputActive();
+
+    // Delete or Backspace = Delete element
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && state.selectedElement) {
         e.preventDefault();
-        undo();
-    }
-    // Ctrl+Y = Redo
-    if (e.ctrlKey && e.key === 'y') {
-        e.preventDefault();
-        redo();
-    }
-    // Delete = Delete element
-    if (e.key === 'Delete' && state.selectedElement) {
         deleteElement(state.selectedElement);
+        saveToHistory();
     }
-    // Ctrl+D = Duplicate element
-    if (e.ctrlKey && e.key === 'd') {
-        e.preventDefault();
-        duplicateElement();
+
+    if (!isMod) return;
+
+    // Shortcuts below require Ctrl/Cmd
+    switch (e.key.toLowerCase()) {
+        case 'z':
+            e.preventDefault();
+            if (e.shiftKey) redo();
+            else undo();
+            break;
+        case 'y':
+            e.preventDefault();
+            redo();
+            break;
+        case 's':
+            e.preventDefault();
+            saveDesign();
+            break;
+        case 'o':
+            e.preventDefault();
+            loadDesign();
+            break;
+        case 'c':
+            if (!typing && state.selectedElement) {
+                e.preventDefault();
+                copyElement();
+            }
+            break;
+        case 'v':
+            if (!typing && state.clipboard) {
+                e.preventDefault();
+                pasteElement();
+            }
+            break;
+        case 'd':
+            if (!typing && state.selectedElement) {
+                e.preventDefault();
+                duplicateElement();
+            }
+            break;
     }
+}
+
+function copyElement() {
+    if (!state.selectedElement) return;
+    const element = getElementData(state.selectedElement);
+    if (!element) return;
+    state.clipboard = JSON.parse(JSON.stringify(element));
+    setStatus('요소 복사됨');
+}
+
+function pasteElement() {
+    if (!state.clipboard) return;
+
+    // Clone from clipboard
+    const id = `elem_${++state.elementCounter}`;
+    const pasted = JSON.parse(JSON.stringify(state.clipboard));
+
+    pasted.id = id;
+    if (pasted.name) pasted.name = `${pasted.name}_paste`;
+    pasted.x += 20;
+    pasted.y += 20;
+    pasted.zIndex = ++state.zIndexCounter;
+
+    state.design.elements.push(pasted);
+    createElementDOM(pasted);
+    selectElement(id);
+
+    setStatus('요소 붙여넣기됨');
+    saveToHistory();
 }
 
 // ===== Toolbar Events =====
