@@ -277,70 +277,75 @@ function setupToolbarEvents() {
 }
 
 async function newDesign() {
+    console.log('newDesign requested');
     if (state.design.elements.length > 0) {
-        if (!confirm('현재 디자인을 버리고 새로 시작하시겠습니까?')) return;
+        // Use a slight delay or check if it's already in process to avoid double triggers on Mac
+        const confirmed = confirm('현재 디자인을 버리고 새로 시작하시겠습니까?');
+        if (!confirmed) return;
     }
 
-    // Reset state locally
-    state.design = {
-        canvas: {
-            width: 800,
-            height: 600,
-            flexible: false,
-            title: 'New Design',
-            bgColor: '#2a2a3e'
-        },
-        settings: {
-            windowBg: '#2a2a3e',
-            componentBg: '#ffffff',
-            componentText: '#e8e8f0',
-            inputBg: '#333344',
-            inputText: '#ffffff'
-        },
-        elements: []
-    };
-    state.selectedElements = [];
-    state.elementCounter = 0;
+    try {
+        // Reset state locally
+        state.design = {
+            canvas: {
+                width: 800,
+                height: 600,
+                flexible: false,
+                title: 'New Design',
+                bgColor: '#2a2a3e'
+            },
+            settings: {
+                windowBg: '#2a2a3e',
+                componentBg: '#ffffff',
+                componentText: '#e8e8f0',
+                inputBg: '#333344',
+                inputText: '#ffffff'
+            },
+            elements: []
+        };
+        state.selectedElements = [];
+        state.elementCounter = 0;
 
-    // Reset history for new design
-    state.history = [];
-    state.historyIndex = -1;
+        // Reset history for new design
+        state.history = [];
+        state.historyIndex = -1;
 
-    clearCanvas();
-    updateCanvasFromState();
+        clearCanvas();
+        updateCanvasFromState();
 
-    saveToHistory(); // Record the new blank state as index 0
+        saveToHistory(); // Record the new blank state as index 0
 
-    setStatus('새 디자인 생성됨');
+        setStatus('새 디자인 생성됨');
 
-    // Sync to backend if available
-    if (window.go?.main?.App?.NewDesign) {
-        try {
+        // Sync to backend if available
+        if (window.go?.main?.App?.NewDesign) {
             await window.go.main.App.NewDesign();
-        } catch (e) {
-            console.log('Backend sync skipped');
         }
+    } catch (e) {
+        console.error('newDesign error:', e);
+        setStatus('새로 만들기 실패');
     }
 }
 
 async function saveDesign() {
     syncDesignToBackend();
+    const defaultFilename = getSafeFilename() + '.guidesign';
 
     // Try Wails backend first
     if (window.go?.main?.App?.SaveDesign) {
         try {
-            const path = await window.go.main.App.SaveDesign();
+            const path = await window.go.main.App.SaveDesign(defaultFilename);
             if (path) {
-                setStatus('저장됨: ' + path.split('/').pop());
+                setStatus('저장됨: ' + path.split(/[\\/]/).pop());
                 return;
             }
         } catch (e) {
-            console.log('Backend save failed, using browser download');
+            console.log('Backend save failed, using browser download', e);
         }
     }
 
     // Browser fallback - download as file
-    downloadFile(JSON.stringify(state.design, null, 2), 'design.guidesign', 'application/json');
+    downloadFile(JSON.stringify(state.design, null, 2), defaultFilename, 'application/json');
     setStatus('저장됨 (다운로드)');
 }
 
@@ -451,23 +456,24 @@ function syncElementCounter() {
 async function exportJSON() {
     syncDesignToBackend();
     const jsonStr = JSON.stringify(designToJSON(state.design), null, 2);
+    const defaultFilename = getSafeFilename() + '.json';
 
     // Try Wails backend first
     if (window.go?.main?.App?.ExportJSON) {
         try {
-            // Pass the formatted JSON string to backend
-            const path = await window.go.main.App.ExportJSON(jsonStr);
+            // Pass the formatted JSON string and default filename to backend
+            const path = await window.go.main.App.ExportJSON(jsonStr, defaultFilename);
             if (path) {
                 setStatus('JSON 내보내기 완료');
                 return;
             }
         } catch (e) {
-            console.log('Backend export failed, using browser download');
+            console.log('Backend export failed, using browser download', e);
         }
     }
 
     // Browser fallback
-    downloadFile(jsonStr, 'gui_design.json', 'application/json');
+    downloadFile(jsonStr, defaultFilename, 'application/json');
     setStatus('JSON 내보내기 완료 (다운로드)');
 }
 
@@ -538,23 +544,24 @@ function designToJSON(design) {
 
 async function exportXML() {
     syncDesignToBackend();
+    const defaultFilename = getSafeFilename() + '.xml';
 
     // Try Wails backend first
     if (window.go?.main?.App?.ExportXML) {
         try {
-            const path = await window.go.main.App.ExportXML();
+            const path = await window.go.main.App.ExportXML(defaultFilename);
             if (path) {
                 setStatus('XML 내보내기 완료');
                 return;
             }
         } catch (e) {
-            console.log('Backend export failed, using browser download');
+            console.log('Backend export failed, using browser download', e);
         }
     }
 
     // Browser fallback
     const xml = designToXML(state.design);
-    downloadFile(xml, 'gui_design.xml', 'application/xml');
+    downloadFile(xml, defaultFilename, 'application/xml');
     setStatus('XML 내보내기 완료 (다운로드)');
 }
 
@@ -1184,7 +1191,25 @@ function createElementDOM(element) {
     // Mouse events
     el.addEventListener('mousedown', handleElementMouseDown);
 
-    dom.canvas.appendChild(el);
+    // Use parent container if available
+    let parent = dom.canvas;
+    if (element.parentId) {
+        const pEl = document.getElementById(element.parentId);
+        if (pEl) {
+            // For sections/cards, we append directly
+            // For tabs, we should append to the content area? 
+            // Actually, renderTabContent creates a .tab-content area.
+            if (pEl.dataset.type === 'tab') {
+                const tabContent = pEl.querySelector('.tab-content');
+                if (tabContent) parent = tabContent;
+                else parent = pEl;
+            } else {
+                parent = pEl;
+            }
+        }
+    }
+
+    parent.appendChild(el);
 
     return el;
 }
@@ -2842,9 +2867,17 @@ function clearCanvas() {
 }
 
 function renderElementsFromState() {
-    state.design.elements.forEach(element => {
-        createElementDOM(element);
-    });
+    // 1st pass: Create all root level containers
+    const rootElements = state.design.elements.filter(el => !el.parentId);
+    const childElements = state.design.elements.filter(el => el.parentId);
+
+    // Render roots first
+    rootElements.forEach(element => createElementDOM(element));
+
+    // 2nd pass: Render children (and sort them if we had deep nesting, but GUI doesn't support deep yet)
+    // If deep nesting is supported, we might need a more recursive approach.
+    // For now, simple 2-pass is enough for 1-level nesting.
+    childElements.forEach(element => createElementDOM(element));
 
     // Update Tab Visibility initially
     state.design.elements.forEach(element => {
@@ -2852,6 +2885,12 @@ function renderElementsFromState() {
             updateTabChildrenVisibility(element.id);
         }
     });
+}
+
+function getSafeFilename() {
+    let title = state.design.canvas.title || 'design';
+    // Remove illegal characters for filenames
+    return title.replace(/[<>:"/\\|?*]/g, '_').trim();
 }
 
 function setStatus(text) {

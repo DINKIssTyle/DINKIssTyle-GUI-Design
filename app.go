@@ -105,10 +105,13 @@ func (a *App) GetCurrentFilePath() string {
 }
 
 // ExportJSON exports the design to a JSON file
-func (a *App) ExportJSON(jsonContent string) (string, error) {
+func (a *App) ExportJSON(jsonContent string, defaultFilename string) (string, error) {
+	if defaultFilename == "" {
+		defaultFilename = "gui_design.json"
+	}
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Export as JSON",
-		DefaultFilename: "gui_design.json",
+		DefaultFilename: defaultFilename,
 		Filters: []runtime.FileFilter{
 			{DisplayName: "JSON Files", Pattern: "*.json"},
 		},
@@ -130,10 +133,13 @@ func (a *App) ExportJSON(jsonContent string) (string, error) {
 }
 
 // ExportXML exports the design to an XML file
-func (a *App) ExportXML() (string, error) {
+func (a *App) ExportXML(defaultFilename string) (string, error) {
+	if defaultFilename == "" {
+		defaultFilename = "gui_design.xml"
+	}
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Export as XML",
-		DefaultFilename: "gui_design.xml",
+		DefaultFilename: defaultFilename,
 		Filters: []runtime.FileFilter{
 			{DisplayName: "XML Files", Pattern: "*.xml"},
 		},
@@ -175,16 +181,20 @@ func (a *App) saveToPath(filePath string) (string, error) {
 }
 
 // SaveDesign saves the design to a file (reuses existing path if available)
-func (a *App) SaveDesign() (string, error) {
+func (a *App) SaveDesign(defaultFilename string) (string, error) {
 	// If we have an existing file path, save directly
 	if a.currentFilePath != "" {
 		return a.saveToPath(a.currentFilePath)
 	}
 
+	if defaultFilename == "" {
+		defaultFilename = "design.guidesign"
+	}
+
 	// Otherwise, show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Save Design",
-		DefaultFilename: "design.guidesign",
+		DefaultFilename: defaultFilename,
 		Filters: []runtime.FileFilter{
 			{DisplayName: "GUI Design Files", Pattern: "*.guidesign"},
 		},
@@ -206,10 +216,13 @@ func (a *App) SaveDesign() (string, error) {
 }
 
 // SaveDesignAs saves the design to a new file (always shows dialog)
-func (a *App) SaveDesignAs() (string, error) {
+func (a *App) SaveDesignAs(defaultFilename string) (string, error) {
+	if defaultFilename == "" {
+		defaultFilename = "design.guidesign"
+	}
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Save Design As",
-		DefaultFilename: "design.guidesign",
+		DefaultFilename: defaultFilename,
 		Filters: []runtime.FileFilter{
 			{DisplayName: "GUI Design Files", Pattern: "*.guidesign"},
 		},
