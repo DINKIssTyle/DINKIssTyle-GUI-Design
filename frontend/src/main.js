@@ -3120,18 +3120,126 @@ function setupColorControl(inputId, propertyName, target, defaultValue = '#00000
     if (!input) return;
 
     // Use current value or default
-    input.value = target.properties?.[propertyName] || target[propertyName] || defaultValue;
+    const currentVal = target.properties ? target.properties[propertyName] : target[propertyName];
+    input.value = (currentVal && currentVal !== 'transparent') ? currentVal : (defaultValue || '#000000');
+
+    // Container for extra controls
+    let extras = input.parentNode.querySelector('.color-extras');
+    if (!extras) {
+        extras = document.createElement('div');
+        extras.className = 'color-extras';
+        input.parentNode.appendChild(extras);
+    }
+    extras.innerHTML = ''; // Clear previous
+
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'btn-group-mini';
+
+    // 1. Default Button
+    const btnDefault = document.createElement('button');
+    btnDefault.textContent = '기본값';
+    btnDefault.className = 'btn-icon-small';
+    btnDefault.title = '프로젝트 설정의 기본값을 사용합니다';
+    btnDefault.onclick = () => {
+        if (target.properties) delete target.properties[propertyName];
+        else target[propertyName] = null;
+
+        if (target.id) updateElementDOM(target);
+        else if (inputId.startsWith('set-') || inputId === 'canvas-bgcolor') {
+            updateCanvasSize();
+            state.design.elements.forEach(el => updateElementDOM(el));
+        }
+        saveToHistory();
+        if (target.id) updateElementProperties();
+        else openSettingsModal();
+    };
+
+    // 2. None Button (Transparent)
+    const btnNone = document.createElement('button');
+    btnNone.textContent = '없음';
+    btnNone.className = 'btn-icon-small';
+    btnNone.title = '색상을 투명으로 설정합니다';
+    btnNone.onclick = () => {
+        if (target.properties) target.properties[propertyName] = 'transparent';
+        else target[propertyName] = 'transparent';
+
+        if (target.id) updateElementDOM(target);
+        else if (inputId.startsWith('set-') || inputId === 'canvas-bgcolor') {
+            updateCanvasSize();
+            state.design.elements.forEach(el => updateElementDOM(el));
+        }
+        saveToHistory();
+        if (target.id) updateElementProperties();
+        else openSettingsModal();
+    };
+
+    btnGroup.appendChild(btnDefault);
+    btnGroup.appendChild(btnNone);
+    extras.appendChild(btnGroup);
+
+    // 3. Mini Palette
+    const palette = document.createElement('div');
+    palette.className = 'mini-palette';
+
+    // Collect used colors
+    const colors = new Set();
+    // From settings
+    if (state.design.settings) {
+        Object.values(state.design.settings).forEach(v => {
+            if (typeof v === 'string' && v.startsWith('#')) colors.add(v);
+        });
+    }
+    // From elements
+    state.design.elements.forEach(el => {
+        if (el.properties) {
+            ['fontColor', 'bgColor', 'tabActiveColor', 'tabInactiveColor'].forEach(p => {
+                const c = el.properties[p];
+                if (c && c.startsWith('#')) colors.add(c);
+            });
+        }
+    });
+    // Add canvas bg
+    if (state.design.canvas.bgColor) colors.add(state.design.canvas.bgColor);
+
+    // Render chips (max 12)
+    Array.from(colors).slice(0, 12).forEach(color => {
+        const chip = document.createElement('div');
+        chip.className = 'color-chip';
+        chip.style.backgroundColor = color;
+        chip.title = color;
+        chip.onclick = () => {
+            input.value = color;
+            if (target.properties) target.properties[propertyName] = color;
+            else target[propertyName] = color;
+
+            if (target.id) updateElementDOM(target);
+            else if (inputId.startsWith('set-') || inputId === 'canvas-bgcolor') {
+                updateCanvasSize();
+                state.design.elements.forEach(el => updateElementDOM(el));
+            }
+            saveToHistory();
+        };
+        palette.appendChild(chip);
+    });
+
+    if (colors.size > 0) extras.appendChild(palette);
 
     // Direct input change
     input.oninput = (e) => {
-        if (target.properties) target.properties[propertyName] = e.target.value;
-        else target[propertyName] = e.target.value;
+        const color = e.target.value;
+        if (target.properties) target.properties[propertyName] = color;
+        else target[propertyName] = color;
 
         if (target.id) updateElementDOM(target);
-        else if (inputId === 'canvas-bgcolor') updateCanvasSize();
+        else if (inputId.startsWith('set-') || inputId === 'canvas-bgcolor') {
+            updateCanvasSize();
+            // If it's a global setting, update all elements to catch fallbacks
+            if (inputId.startsWith('set-')) {
+                state.design.elements.forEach(el => updateElementDOM(el));
+            }
+        }
     };
 
-    // Note: We used to have separate buttons for default/palette in some versions,
-    // but now we'll keep the JS logic lean and focus on the input if HTML is minimal.
+    input.onchange = () => saveToHistory();
 }
 
