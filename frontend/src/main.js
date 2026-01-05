@@ -261,7 +261,11 @@ function pasteElements() {
 function setupToolbarEvents() {
     const safeAdd = (id, event, handler) => {
         const el = document.getElementById(id);
-        if (el) el.addEventListener(event, handler);
+        if (el) {
+            // Log for debugging Mac issues
+            console.log(`Binding ${id} to ${event}`);
+            el.addEventListener(event, handler);
+        }
     };
 
     safeAdd('btn-new', 'click', newDesign);
@@ -384,18 +388,18 @@ async function loadDesign() {
 }
 
 function applyLoadedDesign(design) {
-    // 1. Normalize Structure
-    if (design.Window || design.Components) {
-        // C# / Legacy specific mapping
-        state.design = {
-            canvas: design.Window || {},
-            elements: design.Components || [],
-            settings: design.settings || {}
-        };
-    } else {
-        // Native mapping
-        state.design = design || { canvas: {}, elements: [], settings: {} };
-    }
+    if (!design) return;
+
+    // 1. Normalize Structure (Handle various key casings)
+    const windowData = design.Window || design.window || design.canvas || {};
+    const elementsData = design.Elements || design.elements || design.Components || design.components || [];
+    const settingsData = design.Settings || design.settings || {};
+
+    state.design = {
+        canvas: windowData,
+        elements: elementsData,
+        settings: settingsData
+    };
 
     // 1.5 Ensure settings object structure
     if (!state.design.settings) state.design.settings = {};
@@ -418,8 +422,29 @@ function applyLoadedDesign(design) {
         };
     }
 
-    state.selectedElement = null;
+    state.selectedElements = [];
     syncElementCounter();
+
+    console.log('--- applyLoadedDesign normalization start ---');
+    console.log(`Total elements: ${state.design.elements.length}`);
+
+    // 4. Ensure elements have necessary fields for parent-child relationship (case-insensitive normalization)
+    state.design.elements.forEach((el, index) => {
+        // Universal parent reference normalization
+        const pid = el.parentId || el.ParentID || "";
+        el.parentId = (pid === null || pid === undefined) ? "" : String(pid);
+
+        // Universal tab index normalization
+        const ptidx = (el.parentTabIndex !== undefined) ? el.parentTabIndex : el.ParentTabIndex;
+        el.parentTabIndex = (ptidx !== undefined) ? parseInt(ptidx) : undefined;
+
+        if (!el.properties) el.properties = {};
+
+        if (el.parentId) {
+            console.log(`[Element ${index}] ${el.id} has parent ${el.parentId} on tab ${el.parentTabIndex}`);
+        }
+    });
+    console.log('--- applyLoadedDesign normalization end ---');
 
     clearCanvas();
     renderElementsFromState();
@@ -1191,25 +1216,9 @@ function createElementDOM(element) {
     // Mouse events
     el.addEventListener('mousedown', handleElementMouseDown);
 
-    // Use parent container if available
-    let parent = dom.canvas;
-    if (element.parentId) {
-        const pEl = document.getElementById(element.parentId);
-        if (pEl) {
-            // For sections/cards, we append directly
-            // For tabs, we should append to the content area? 
-            // Actually, renderTabContent creates a .tab-content area.
-            if (pEl.dataset.type === 'tab') {
-                const tabContent = pEl.querySelector('.tab-content');
-                if (tabContent) parent = tabContent;
-                else parent = pEl;
-            } else {
-                parent = pEl;
-            }
-        }
-    }
-
-    parent.appendChild(el);
+    // [CRITICAL FIX] Always append to canvas to preserve absolute coordinates (x, y)
+    // Nesting within relative/absolute containers would shift the component visuals incorrectly.
+    dom.canvas.appendChild(el);
 
     return el;
 }

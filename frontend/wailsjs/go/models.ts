@@ -30,6 +30,8 @@ export namespace main {
 	    width: number;
 	    height: number;
 	    zIndex: number;
+	    parentId: string;
+	    parentTabIndex: number;
 	    properties: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
@@ -47,6 +49,8 @@ export namespace main {
 	        this.width = source["width"];
 	        this.height = source["height"];
 	        this.zIndex = source["zIndex"];
+	        this.parentId = source["parentId"];
+	        this.parentTabIndex = source["parentTabIndex"];
 	        this.properties = source["properties"];
 	    }
 	}

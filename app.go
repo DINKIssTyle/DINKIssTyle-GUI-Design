@@ -23,16 +23,18 @@ type CanvasConfig struct {
 
 // GUIElement represents a single GUI component
 type GUIElement struct {
-	ID          string                 `json:"id" xml:"id,attr"`
-	Type        string                 `json:"type" xml:"type"`
-	Name        string                 `json:"name" xml:"name"`
-	Description string                 `json:"description" xml:"description"`
-	X           int                    `json:"x" xml:"x"`
-	Y           int                    `json:"y" xml:"y"`
-	Width       int                    `json:"width" xml:"width"`
-	Height      int                    `json:"height" xml:"height"`
-	ZIndex      int                    `json:"zIndex" xml:"zIndex"`
-	Properties  map[string]interface{} `json:"properties" xml:"properties"`
+	ID             string                 `json:"id" xml:"id,attr"`
+	Type           string                 `json:"type" xml:"type"`
+	Name           string                 `json:"name" xml:"name"`
+	Description    string                 `json:"description" xml:"description"`
+	X              int                    `json:"x" xml:"x"`
+	Y              int                    `json:"y" xml:"y"`
+	Width          int                    `json:"width" xml:"width"`
+	Height         int                    `json:"height" xml:"height"`
+	ZIndex         int                    `json:"zIndex" xml:"zIndex"`
+	ParentID       string                 `json:"parentId" xml:"parentId"`
+	ParentTabIndex int                    `json:"parentTabIndex" xml:"parentTabIndex"`
+	Properties     map[string]interface{} `json:"properties" xml:"properties"`
 }
 
 // ProjectSettings represents default global styles
