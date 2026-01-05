@@ -22,7 +22,9 @@ const state = {
         },
         elements: []
     },
-    selectedElement: null,
+    selectedElements: [],
+    isSelecting: false, // For drag selection box
+    selectionStart: { x: 0, y: 0 },
     isDragging: false,
     isResizing: false,
     dragOffset: { x: 0, y: 0 },
@@ -45,7 +47,8 @@ const dom = {
     guideV: null,
     statusText: null,
     canvasSize: null,
-    canvasMode: null
+    canvasMode: null,
+    selectionBox: null
 };
 
 // ===== Component Definitions =====
@@ -94,6 +97,11 @@ function init() {
     dom.canvasSize = document.getElementById('canvas-size');
     dom.canvasMode = document.getElementById('canvas-mode');
 
+    // Create selection box element
+    dom.selectionBox = document.createElement('div');
+    dom.selectionBox.className = 'selection-box';
+    dom.canvas.appendChild(dom.selectionBox);
+
     // Initialize canvas
     updateCanvasSize();
 
@@ -104,6 +112,7 @@ function init() {
     setupPropertyEvents();
     setupZoomEvents();
     setupSettingsEvents();
+    setupLayoutEvents();
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
@@ -131,9 +140,9 @@ function handleKeyDown(e) {
     const typing = isInputActive();
 
     // Delete or Backspace = Delete element
-    if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && state.selectedElement) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && state.selectedElements.length > 0) {
         e.preventDefault();
-        deleteElement(state.selectedElement);
+        deleteSelectedElements();
         saveToHistory();
     }
 
@@ -159,52 +168,64 @@ function handleKeyDown(e) {
             loadDesign();
             break;
         case 'c':
-            if (!typing && state.selectedElement) {
+            if (!typing && state.selectedElements.length > 0) {
                 e.preventDefault();
-                copyElement();
+                copyElements();
             }
             break;
         case 'v':
             if (!typing && state.clipboard) {
                 e.preventDefault();
-                pasteElement();
+                pasteElements();
             }
             break;
         case 'd':
-            if (!typing && state.selectedElement) {
+            if (!typing && state.selectedElements.length > 0) {
                 e.preventDefault();
-                duplicateElement();
+                duplicateSelectedElements();
+            }
+            break;
+        case 'a':
+            // Select All (Optional but useful)
+            if (!typing) {
+                e.preventDefault();
+                selectAllElements();
             }
             break;
     }
 }
 
-function copyElement() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
-    if (!element) return;
-    state.clipboard = JSON.parse(JSON.stringify(element));
-    setStatus('요소 복사됨');
+function copyElements() {
+    if (state.selectedElements.length === 0) return;
+
+    const elements = state.selectedElements.map(id => getElementData(id)).filter(el => el);
+    state.clipboard = JSON.parse(JSON.stringify(elements));
+    setStatus(`${elements.length}개 요소 복사됨`);
 }
 
-function pasteElement() {
-    if (!state.clipboard) return;
+function pasteElements() {
+    if (!state.clipboard || !Array.isArray(state.clipboard)) return;
 
-    // Clone from clipboard
-    const id = `elem_${++state.elementCounter}`;
-    const pasted = JSON.parse(JSON.stringify(state.clipboard));
+    const newIds = [];
+    state.clipboard.forEach(original => {
+        const id = getNextId();
+        const pasted = JSON.parse(JSON.stringify(original));
 
-    pasted.id = id;
-    if (pasted.name) pasted.name = `${pasted.name}_paste`;
-    pasted.x += 20;
-    pasted.y += 20;
-    pasted.zIndex = ++state.zIndexCounter;
+        pasted.id = id;
+        if (pasted.name) pasted.name = `${pasted.name}_paste`;
+        pasted.x += 20;
+        pasted.y += 20;
+        pasted.zIndex = ++state.zIndexCounter;
 
-    state.design.elements.push(pasted);
-    createElementDOM(pasted);
-    selectElement(id);
+        state.design.elements.push(pasted);
+        createElementDOM(pasted);
+        newIds.push(id);
+    });
 
-    setStatus('요소 붙여넣기됨');
+    deselectAll();
+    newIds.forEach(id => selectElement(id, true));
+
+    setStatus(`${state.clipboard.length}개 요소 붙여넣기됨`);
     saveToHistory();
 }
 
@@ -243,7 +264,7 @@ async function newDesign() {
         },
         elements: []
     };
-    state.selectedElement = null;
+    state.selectedElements = [];
     state.elementCounter = 0;
     clearCanvas();
     updateCanvasFromState();
@@ -346,11 +367,7 @@ function applyLoadedDesign(design) {
     }
 
     state.selectedElement = null;
-    state.elementCounter = state.design.elements?.length || 0;
-
-    // Ensure element IDs are strings (legacy fix) or unique? 
-    // Just in case, let's keep max ID counter sync.
-    // Logic to find max ID suffix number if needed, but not critical for simple load.
+    syncElementCounter();
 
     clearCanvas();
     renderElementsFromState();
@@ -360,6 +377,28 @@ function applyLoadedDesign(design) {
     // Settings are lazy loaded usually.
 
     setStatus('불러오기 완료');
+}
+
+function getNextId() {
+    return `elem_${++state.elementCounter}`;
+}
+
+function syncElementCounter() {
+    let maxId = 0;
+    state.design.elements.forEach(el => {
+        if (typeof el.id === 'string' && el.id.startsWith('elem_')) {
+            const num = parseInt(el.id.replace('elem_', ''));
+            if (!isNaN(num) && num > maxId) maxId = num;
+        }
+    });
+    // Also check z-index to be safe
+    let maxZ = 100;
+    state.design.elements.forEach(el => {
+        if (el.zIndex > maxZ) maxZ = el.zIndex;
+    });
+
+    state.elementCounter = maxId;
+    state.zIndexCounter = maxZ;
 }
 
 async function exportJSON() {
@@ -674,16 +713,196 @@ function setupCanvasEvents() {
     dom.canvas.addEventListener('dragleave', handleCanvasDragLeave);
     dom.canvas.addEventListener('drop', handleCanvasDrop);
 
-    // Click to deselect
-    dom.canvas.addEventListener('click', (e) => {
-        if (e.target === dom.canvas) {
-            deselectElement();
+    // Canvas Mouse events (for selection box)
+    dom.canvas.addEventListener('mousedown', handleCanvasMouseDown);
+
+    // Global mouse events for dragging elements or selection box
+    document.addEventListener('mousemove', (e) => {
+        if (state.isDragging) handleElementDrag(e);
+        if (state.isSelecting) handleCanvasMouseMove(e);
+    });
+    document.addEventListener('mouseup', (e) => {
+        if (state.isDragging) handleElementDragEnd(e);
+        if (state.isSelecting) handleCanvasMouseUp(e);
+    });
+}
+
+function handleCanvasMouseDown(e) {
+    if (e.target !== dom.canvas) return;
+
+    // Deselect all unless shift is pressed
+    if (!e.shiftKey) {
+        deselectAll();
+    }
+
+    state.isSelecting = true;
+    const rect = dom.canvas.getBoundingClientRect();
+    state.selectionStart.x = (e.clientX - rect.left) / state.zoom;
+    state.selectionStart.y = (e.clientY - rect.top) / state.zoom;
+
+    dom.selectionBox.style.display = 'block';
+    dom.selectionBox.style.left = state.selectionStart.x + 'px';
+    dom.selectionBox.style.top = state.selectionStart.y + 'px';
+    dom.selectionBox.style.width = '0px';
+    dom.selectionBox.style.height = '0px';
+}
+
+function handleCanvasMouseMove(e) {
+    if (!state.isSelecting) return;
+
+    const rect = dom.canvas.getBoundingClientRect();
+    const currentX = (e.clientX - rect.left) / state.zoom;
+    const currentY = (e.clientY - rect.top) / state.zoom;
+
+    const left = Math.min(state.selectionStart.x, currentX);
+    const top = Math.min(state.selectionStart.y, currentY);
+    const width = Math.abs(currentX - state.selectionStart.x);
+    const height = Math.abs(currentY - state.selectionStart.y);
+
+    dom.selectionBox.style.left = left + 'px';
+    dom.selectionBox.style.top = top + 'px';
+    dom.selectionBox.style.width = width + 'px';
+    dom.selectionBox.style.height = height + 'px';
+
+    // Highlight elements visually inside the box (optional but cool)
+    // For now, we do actual selection on MouseUp.
+}
+
+function handleCanvasMouseUp(e) {
+    if (!state.isSelecting) return;
+
+    const rect = dom.selectionBox.getBoundingClientRect();
+    const canvasRect = dom.canvas.getBoundingClientRect();
+
+    state.isSelecting = false;
+    dom.selectionBox.style.display = 'none';
+
+    // Box bounds in canvas coordinates
+    const boxLeft = (rect.left - canvasRect.left) / state.zoom;
+    const boxTop = (rect.top - canvasRect.top) / state.zoom;
+    const boxRight = (rect.right - canvasRect.left) / state.zoom;
+    const boxBottom = (rect.bottom - canvasRect.top) / state.zoom;
+
+    // Don't select if box is tiny (just a click)
+    if (Math.abs(boxRight - boxLeft) < 5 && Math.abs(boxBottom - boxTop) < 5) return;
+
+    state.design.elements.forEach(el => {
+        // Element bounds
+        const eLeft = el.x;
+        const eTop = el.y;
+        const eRight = el.x + el.width;
+        const eBottom = el.y + el.height;
+
+        // Check intersection
+        if (eLeft < boxRight && eRight > boxLeft && eTop < boxBottom && eBottom > boxTop) {
+            selectElement(el.id, true); // multi=true
         }
     });
 
-    // Global mouse events for dragging
-    document.addEventListener('mousemove', handleElementDrag);
-    document.addEventListener('mouseup', handleElementDragEnd);
+}
+
+// ===== Layout Functions =====
+function alignElements(direction) {
+    if (state.selectedElements.length < 2) return;
+
+    const elements = state.selectedElements.map(id => getElementData(id));
+
+    // Find boundary values
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    elements.forEach(el => {
+        minX = Math.min(minX, el.x);
+        maxX = Math.max(maxX, el.x + el.width);
+        minY = Math.min(minY, el.y);
+        maxY = Math.max(maxY, el.y + el.height);
+    });
+
+    elements.forEach(el => {
+        switch (direction) {
+            case 'left': el.x = minX; break;
+            case 'right': el.x = maxX - el.width; break;
+            case 'center': el.x = minX + (maxX - minX) / 2 - el.width / 2; break;
+            case 'top': el.y = minY; break;
+            case 'bottom': el.y = maxY - el.height; break;
+            case 'middle': el.y = minY + (maxY - minY) / 2 - el.height / 2; break;
+        }
+        updateElementDOM(el);
+    });
+
+    saveToHistory();
+    setStatus(`${direction} 정렬 완료`);
+}
+
+function distributeElements(axis) {
+    if (state.selectedElements.length < 3) return;
+
+    const elements = state.selectedElements.map(id => getElementData(id));
+
+    if (axis === 'h') {
+        elements.sort((a, b) => a.x - b.x);
+        const minX = elements[0].x;
+        const maxX = elements[elements.length - 1].x + elements[elements.length - 1].width;
+
+        // Distribute spacing between items
+        const totalItemsWidth = elements.reduce((sum, el) => sum + el.width, 0);
+        const totalSpace = (maxX - minX) - totalItemsWidth;
+        const spacing = totalSpace / (elements.length - 1);
+
+        let currentX = minX;
+        elements.forEach((el, i) => {
+            el.x = Math.round(currentX);
+            updateElementDOM(el);
+            currentX += el.width + spacing;
+        });
+    } else {
+        elements.sort((a, b) => a.y - b.y);
+        const minY = elements[0].y;
+        const maxY = elements[elements.length - 1].y + elements[elements.length - 1].height;
+
+        const totalItemsHeight = elements.reduce((sum, el) => sum + el.height, 0);
+        const totalSpace = (maxY - minY) - totalItemsHeight;
+        const spacing = totalSpace / (elements.length - 1);
+
+        let currentY = minY;
+        elements.forEach((el, i) => {
+            el.y = Math.round(currentY);
+            updateElementDOM(el);
+            currentY += el.height + spacing;
+        });
+    }
+
+    saveToHistory();
+    setStatus(`${axis === 'h' ? '가로' : '세로'} 분포 완료`);
+}
+
+function reorderLayers(action) {
+    if (state.selectedElements.length === 0) return;
+
+    // Sort selected IDs by current zIndex to maintain relative order
+    const selection = state.selectedElements
+        .map(id => getElementData(id))
+        .sort((a, b) => a.zIndex - b.zIndex);
+
+    switch (action) {
+        case 'front':
+            selection.forEach(el => el.zIndex = ++state.zIndexCounter);
+            break;
+        case 'back':
+            // Logic: find min z-index of all elements, then push selection below it
+            const allZ = state.design.elements.map(e => e.zIndex || 100);
+            let minZ = Math.min(...allZ);
+            selection.reverse().forEach(el => el.zIndex = --minZ);
+            break;
+        case 'forward':
+            selection.reverse().forEach(el => el.zIndex += 2);
+            break;
+        case 'backward':
+            selection.forEach(el => el.zIndex -= 2);
+            break;
+    }
+
+    selection.forEach(el => updateElementDOM(el));
+    saveToHistory();
+    setStatus(`레이어 ${action} 변경 완료`);
 }
 
 function handleCanvasDragOver(e) {
@@ -713,7 +932,7 @@ function handleCanvasDrop(e) {
 // ===== Element Management =====
 function addElementToCanvas(type, x, y, parentId = null) {
     const defaults = componentDefaults[type] || { width: 100, height: 40, text: type };
-    const id = `elem_${++state.elementCounter}`;
+    const id = getNextId();
 
     // Center the element on drop position
     const canvasWidth = state.design.canvas.flexible ? dom.canvas.offsetWidth : state.design.canvas.width;
@@ -823,9 +1042,16 @@ function createElementDOM(element) {
     el.className = 'canvas-element';
     el.id = element.id;
     el.dataset.type = element.type;
-    el.style.left = element.x + 'px';
+
+    if (element.properties?.fullWidth && element.type === 'section') {
+        el.style.left = '0';
+        el.style.width = '100%';
+    } else {
+        el.style.left = element.x + 'px';
+        el.style.width = element.width + 'px';
+    }
+
     el.style.top = element.y + 'px';
-    el.style.width = element.width + 'px';
     el.style.height = element.height + 'px';
     el.style.zIndex = element.zIndex || 100;
 
@@ -894,10 +1120,6 @@ function createElementDOM(element) {
 
     // Mouse events
     el.addEventListener('mousedown', handleElementMouseDown);
-    el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectElement(element.id);
-    });
 
     dom.canvas.appendChild(el);
 
@@ -1171,71 +1393,98 @@ function updateElementDOM(element) {
 }
 
 function handleElementMouseDown(e) {
-    // Handle resize handle clicks separately
     if (e.target.classList.contains('resize-handle')) return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    // Get the actual element (not resize handle)
     const el = e.target.closest('.canvas-element');
     if (!el) return;
 
     const id = el.id;
-    selectElement(id);
+    const isShift = e.shiftKey;
 
-    const element = getElementData(id);
-    if (!element) return;
+    // If item not selected, select it
+    if (!state.selectedElements.includes(id)) {
+        selectElement(id, isShift);
+    } else if (isShift) {
+        // Toggle off if shift pressed
+        deselectElement(id);
+        return;
+    }
 
+    // Prepare for multi-drag
+    state.isDragging = true;
     const canvasRect = dom.canvas.getBoundingClientRect();
 
-    state.isDragging = true;
-    // Store offset from element's top-left corner (with zoom correction)
-    state.dragOffset.x = (e.clientX - canvasRect.left) / state.zoom - element.x;
-    state.dragOffset.y = (e.clientY - canvasRect.top) / state.zoom - element.y;
+    // Reset drag start for all selected elements
+    state.dragStartData = state.selectedElements.map(sid => {
+        const element = getElementData(sid);
+        return {
+            id: sid,
+            startX: element.x,
+            startY: element.y,
+            offsetX: (e.clientX - canvasRect.left) / state.zoom - element.x,
+            offsetY: (e.clientY - canvasRect.top) / state.zoom - element.y
+        };
+    });
 
     el.classList.add('dragging');
 }
 
 function handleElementDrag(e) {
-    if (!state.isDragging || !state.selectedElement) return;
-
-    const element = getElementData(state.selectedElement);
-    if (!element) return;
+    if (!state.isDragging || state.selectedElements.length === 0) return;
 
     const canvasRect = dom.canvas.getBoundingClientRect();
-    // Apply zoom correction to mouse coordinates
-    let newX = (e.clientX - canvasRect.left) / state.zoom - state.dragOffset.x;
-    let newY = (e.clientY - canvasRect.top) / state.zoom - state.dragOffset.y;
+    const currentMouseX = (e.clientX - canvasRect.left) / state.zoom;
+    const currentMouseY = (e.clientY - canvasRect.top) / state.zoom;
 
-    // Snap to alignment guides
-    const snapResult = snapToGuides(newX, newY, element.width, element.height);
-    newX = snapResult.x;
-    newY = snapResult.y;
+    // We use the primary element (first selected) for snapping and boundary checks
+    const primaryId = state.selectedElements[0];
+    const primaryStart = state.dragStartData.find(d => d.id === primaryId);
+    if (!primaryStart) return;
 
-    // Constrain to canvas bounds (use actual canvas size in flexible mode)
+    const primaryElement = getElementData(primaryId);
+    let newPrimaryX = currentMouseX - primaryStart.offsetX;
+    let newPrimaryY = currentMouseY - primaryStart.offsetY;
+
+    // Snap primary
+    const snapResult = snapToGuides(newPrimaryX, newPrimaryY, primaryElement.width, primaryElement.height);
+    newPrimaryX = snapResult.x;
+    newPrimaryY = snapResult.y;
+
+    // Boundary check for primary
     const canvasWidth = state.design.canvas.flexible ? dom.canvas.offsetWidth : state.design.canvas.width;
     const canvasHeight = state.design.canvas.flexible ? dom.canvas.offsetHeight : state.design.canvas.height;
-    newX = Math.max(0, Math.min(newX, canvasWidth - element.width));
-    newY = Math.max(0, Math.min(newY, canvasHeight - element.height));
+    newPrimaryX = Math.max(0, Math.min(newPrimaryX, canvasWidth - primaryElement.width));
+    newPrimaryY = Math.max(0, Math.min(newPrimaryY, canvasHeight - primaryElement.height));
 
-    // Calculate delta for moving children
-    const dx = Math.round(newX) - element.x;
-    const dy = Math.round(newY) - element.y;
+    const dx = Math.round(newPrimaryX) - primaryStart.startX;
+    const dy = Math.round(newPrimaryY) - primaryStart.startY;
 
-    element.x = Math.round(newX);
-    element.y = Math.round(newY);
+    // Apply delta to all selected elements
+    state.dragStartData.forEach(data => {
+        const el = getElementData(data.id);
+        if (!el) return;
 
-    const domEl = document.getElementById(state.selectedElement);
-    if (domEl) {
-        domEl.style.left = element.x + 'px';
-        domEl.style.top = element.y + 'px';
-    }
+        const oldX = el.x;
+        const oldY = el.y;
+        el.x = Math.round(data.startX + dx);
+        el.y = Math.round(data.startY + dy);
 
-    // Move children with parent (for containers)
-    if (containerTypes.includes(element.type) && (dx !== 0 || dy !== 0)) {
-        moveChildrenWithParent(element.id, dx, dy);
-    }
+        const domEl = document.getElementById(data.id);
+        if (domEl) {
+            domEl.style.left = el.x + 'px';
+            domEl.style.top = el.y + 'px';
+        }
+
+        // Move children if parent container moved
+        const ddx = el.x - oldX;
+        const ddy = el.y - oldY;
+        if (containerTypes.includes(el.type) && (ddx !== 0 || ddy !== 0)) {
+            moveChildrenWithParent(el.id, ddx, ddy);
+        }
+    });
 
     updateElementProperties();
 }
@@ -1246,89 +1495,163 @@ function handleElementDragEnd(e) {
     state.isDragging = false;
     hideGuides();
 
-    if (state.selectedElement) {
-        const domEl = document.getElementById(state.selectedElement);
-        if (domEl) {
-            domEl.classList.remove('dragging');
-        }
-        // Save to history after drag completes
-        saveToHistory();
-    }
+    state.selectedElements.forEach(id => {
+        const domEl = document.getElementById(id);
+        if (domEl) domEl.classList.remove('dragging');
+    });
+
+    saveToHistory();
 }
 
-function selectElement(id) {
-    // Deselect previous
-    if (state.selectedElement) {
-        const prevEl = document.getElementById(state.selectedElement);
-        if (prevEl) {
-            prevEl.classList.remove('selected');
-            removeResizeHandles(prevEl);
-        }
+function selectElement(id, multi = false) {
+    if (!multi) {
+        deselectAll();
     }
 
-    state.selectedElement = id;
+    if (!id) return;
+
+    // Toggle if shift pressed and already selected
+    if (multi && state.selectedElements.includes(id)) {
+        deselectElement(id);
+        return;
+    }
+
+    if (!state.selectedElements.includes(id)) {
+        state.selectedElements.push(id);
+    }
 
     const el = document.getElementById(id);
     if (el) {
         el.classList.add('selected');
-        addResizeHandles(el);
+        // If single selection, show handles
+        if (state.selectedElements.length === 1) {
+            addResizeHandles(el);
+            showElementProperties();
+        } else if (state.selectedElements.length > 1) {
+            // Multi-selection: remove all handles for clarity
+            document.querySelectorAll('.resize-handle').forEach(h => h.remove());
+            showMultiProperties();
+        } else {
+            hideElementProperties();
+        }
     }
 
-    showElementProperties();
+    updateToolbarSelection();
 }
 
-function deselectElement() {
-    if (state.selectedElement) {
-        const el = document.getElementById(state.selectedElement);
+function selectAllElements() {
+    deselectAll();
+    state.design.elements.forEach(el => {
+        state.selectedElements.push(el.id);
+        const domEl = document.getElementById(el.id);
+        if (domEl) domEl.classList.add('selected');
+    });
+    // Remove all handles for clarity on select all
+    document.querySelectorAll('.resize-handle').forEach(h => h.remove());
+    updateToolbarSelection();
+    setStatus(`${state.selectedElements.length}개 요소 선택됨`);
+}
+
+function deselectElement(id) {
+    const idx = state.selectedElements.indexOf(id);
+    if (idx !== -1) {
+        state.selectedElements.splice(idx, 1);
+    }
+
+    const el = document.getElementById(id);
+    if (el) {
+        el.classList.remove('selected');
+        removeResizeHandles(el);
+    }
+
+    if (state.selectedElements.length === 1) {
+        const remainingId = state.selectedElements[0];
+        const remainingEl = document.getElementById(remainingId);
+        if (remainingEl) addResizeHandles(remainingEl);
+        showElementProperties();
+    } else if (state.selectedElements.length > 1) {
+        showMultiProperties();
+    } else if (state.selectedElements.length === 0) {
+        hideElementProperties();
+    }
+
+    updateToolbarSelection();
+}
+
+function deselectAll() {
+    state.selectedElements.forEach(id => {
+        const el = document.getElementById(id);
         if (el) {
             el.classList.remove('selected');
             removeResizeHandles(el);
         }
-    }
-    state.selectedElement = null;
+    });
+    state.selectedElements = [];
     hideElementProperties();
+    updateToolbarSelection();
 }
 
-function deleteElement(id) {
-    // Remove from DOM
-    const el = document.getElementById(id);
-    if (el) el.remove();
-
-    // Remove from state
-    const idx = state.design.elements.findIndex(e => e.id === id);
-    if (idx !== -1) {
-        state.design.elements.splice(idx, 1);
+function updateToolbarSelection() {
+    if (state.selectedElements.length > 1) {
+        setStatus(`${state.selectedElements.length}개 요소 선택됨`);
+    } else if (state.selectedElements.length === 1) {
+        const el = getElementData(state.selectedElements[0]);
+        setStatus(`선택됨: ${el.name || el.type}`);
+    } else {
+        setStatus('준비됨');
     }
-
-    deselectElement();
-    setStatus('요소 삭제됨');
 }
 
-function duplicateElement() {
-    if (!state.selectedElement) return;
-    const original = getElementData(state.selectedElement);
-    if (!original) return;
+function deleteSelectedElements() {
+    if (state.selectedElements.length === 0) return;
 
-    // Deep copy the element
-    const id = `elem_${++state.elementCounter}`;
-    const duplicate = JSON.parse(JSON.stringify(original));
+    // We make a copy because deleteElement modifies the array
+    const selection = [...state.selectedElements];
+    selection.forEach(id => {
+        // Remove from DOM
+        const el = document.getElementById(id);
+        if (el) el.remove();
 
-    duplicate.id = id;
-    duplicate.name = `${original.name || original.type}_copy`;
-    duplicate.x = original.x + 20;
-    duplicate.y = original.y + 20;
-    duplicate.zIndex = ++state.zIndexCounter;
+        // Remove from state
+        const idx = state.design.elements.findIndex(e => e.id === id);
+        if (idx !== -1) {
+            state.design.elements.splice(idx, 1);
+        }
+    });
 
-    // Add to state
-    state.design.elements.push(duplicate);
+    state.selectedElements = [];
+    hideElementProperties();
+    updateToolbarSelection();
+    setStatus(`${selection.length}개 요소 삭제됨`);
+}
 
-    // Create DOM
-    createElementDOM(duplicate);
+function duplicateSelectedElements() {
+    if (state.selectedElements.length === 0) return;
 
-    // Select the duplicate
-    selectElement(id);
+    const selection = [...state.selectedElements];
+    const newIds = [];
 
-    setStatus('요소 복제됨');
+    selection.forEach(sid => {
+        const original = getElementData(sid);
+        if (!original) return;
+
+        const id = getNextId();
+        const duplicate = JSON.parse(JSON.stringify(original));
+        duplicate.id = id;
+        if (duplicate.name) duplicate.name = `${duplicate.name}_copy`;
+        duplicate.x += 20;
+        duplicate.y += 20;
+        duplicate.zIndex = ++state.zIndexCounter;
+
+        state.design.elements.push(duplicate);
+        createElementDOM(duplicate);
+        newIds.push(id);
+    });
+
+    deselectAll();
+    newIds.forEach(id => selectElement(id, true));
+
+    setStatus(`${selection.length}개 요소 복제됨`);
     saveToHistory();
 }
 
@@ -1359,14 +1682,16 @@ function handleResizeStart(e, position) {
     state.resizePosition = position;
     state.resizeStart = { x: e.clientX, y: e.clientY };
 
-    const element = getElementData(state.selectedElement);
-    if (element) {
-        state.resizeOriginal = {
-            x: element.x,
-            y: element.y,
-            width: element.width,
-            height: element.height
-        };
+    if (state.selectedElements.length > 0) {
+        const element = getElementData(state.selectedElements[0]);
+        if (element) {
+            state.resizeOriginal = {
+                x: element.x,
+                y: element.y,
+                width: element.width,
+                height: element.height
+            };
+        }
     }
 
     document.addEventListener('mousemove', handleResize);
@@ -1374,9 +1699,9 @@ function handleResizeStart(e, position) {
 }
 
 function handleResize(e) {
-    if (!state.isResizing || !state.selectedElement) return;
+    if (!state.isResizing || state.selectedElements.length === 0) return;
 
-    const element = getElementData(state.selectedElement);
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     const dx = e.clientX - state.resizeStart.x;
@@ -1396,7 +1721,7 @@ function handleResize(e) {
     element.width = Math.round(newW);
     element.height = Math.round(newH);
 
-    const domEl = document.getElementById(state.selectedElement);
+    const domEl = document.getElementById(element.id);
     if (domEl) {
         domEl.style.left = element.x + 'px';
         domEl.style.top = element.y + 'px';
@@ -1440,7 +1765,7 @@ function snapToGuides(x, y, width, height) {
 
     // Snap to other elements
     state.design.elements.forEach(other => {
-        if (other.id === state.selectedElement) return;
+        if (state.selectedElements.includes(other.id)) return;
 
         const otherCenterX = other.x + other.width / 2;
         const otherCenterY = other.y + other.height / 2;
@@ -1567,23 +1892,38 @@ function setupPropertyEvents() {
     document.getElementById('btn-edit-table').addEventListener('click', openTableEditor);
 
     // Duplicate button
-    document.getElementById('btn-duplicate-element').addEventListener('click', duplicateElement);
+    document.getElementById('btn-duplicate-element').addEventListener('click', duplicateSelectedElements);
 
     // Delete button
-    document.getElementById('btn-delete-element').addEventListener('click', () => {
-        if (state.selectedElement) {
-            deleteElement(state.selectedElement);
-        }
-    });
+    document.getElementById('btn-delete-element').addEventListener('click', deleteSelectedElements);
+
+    // Multi-element properties
+    document.getElementById('multi-style').addEventListener('change', updateMultiStyle);
+    document.getElementById('multi-parent').addEventListener('change', updateMultiParent);
 
     // Divider properties
     document.getElementById('divider-orientation').addEventListener('change', updateDividerProperties);
     document.getElementById('divider-full-size').addEventListener('change', updateDividerProperties);
 }
 
+function setupLayoutEvents() {
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.dataset.action;
+            if (action.startsWith('align-')) {
+                alignElements(action.replace('align-', ''));
+            } else if (action.startsWith('distribute-')) {
+                distributeElements(action.replace('distribute-', ''));
+            } else if (action.startsWith('layer-')) {
+                reorderLayers(action.replace('layer-', ''));
+            }
+        });
+    });
+}
+
 function updateFontProperties() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.properties = element.properties || {};
@@ -1595,8 +1935,8 @@ function updateFontProperties() {
 }
 
 function toggleBold() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.properties = element.properties || {};
@@ -1610,8 +1950,8 @@ function toggleBold() {
 }
 
 function toggleItalic() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.properties = element.properties || {};
@@ -1625,8 +1965,8 @@ function toggleItalic() {
 }
 
 function updateBackgroundColor() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.properties = element.properties || {};
@@ -1638,8 +1978,8 @@ function updateBackgroundColor() {
 }
 
 function toggleBackgroundNone() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.properties = element.properties || {};
@@ -1649,8 +1989,8 @@ function toggleBackgroundNone() {
 }
 
 function updateTabColors() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element || element.type !== 'tab') return;
 
     element.properties = element.properties || {};
@@ -1666,8 +2006,8 @@ function updateCanvasBgColor() {
 }
 
 function setTextAlignment(align) {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.properties = element.properties || {};
@@ -1682,8 +2022,8 @@ function setTextAlignment(align) {
 }
 
 function updateDividerProperties() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element || element.type !== 'divider') return;
 
     element.properties = element.properties || {};
@@ -1823,8 +2163,8 @@ function generatePalette() {
 }
 
 function updateTableSize() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element || element.type !== 'table') return;
 
     const rows = parseInt(document.getElementById('table-rows').value) || 3;
@@ -2002,8 +2342,8 @@ function setupColorControl(inputId, propName, element, defaultColor = null, onUp
 }
 
 function openTableEditor() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element || element.type !== 'table') return;
 
     const props = element.properties || {};
@@ -2078,7 +2418,7 @@ function escapeHtml(str) {
 
 function updateParentSelector() {
     const select = document.getElementById('elem-parent');
-    const currentId = state.selectedElement;
+    const currentId = state.selectedElements[0];
 
     // Clear options
     select.innerHTML = '<option value="">(없음 - 윈도우 직속)</option>';
@@ -2117,8 +2457,8 @@ function updateParentSelector() {
 }
 
 function updateElementParent(e) {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     const value = e.target.value;
@@ -2192,11 +2532,12 @@ function updateCanvasFromState() {
 }
 
 function showElementProperties() {
-    const element = getElementData(state.selectedElement);
-    if (!element) return;
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
 
     document.getElementById('canvas-properties').style.display = 'none';
     document.getElementById('element-properties').style.display = 'block';
+    document.getElementById('multi-properties').style.display = 'none';
 
     const footer = document.getElementById('element-buttons-footer');
     if (footer) footer.style.display = 'block';
@@ -2307,9 +2648,99 @@ function showElementProperties() {
     }
 }
 
+function showMultiProperties() {
+    document.getElementById('canvas-properties').style.display = 'none';
+    document.getElementById('element-properties').style.display = 'none';
+    document.getElementById('multi-properties').style.display = 'block';
+
+    const footer = document.getElementById('element-buttons-footer');
+    if (footer) footer.style.display = 'block';
+
+    document.getElementById('multi-count').textContent = state.selectedElements.length;
+
+    // Reset multi-select inputs
+    document.getElementById('multi-style').value = '';
+
+    // Update parent selector for multi-view
+    const select = document.getElementById('multi-parent');
+    select.innerHTML = '<option value="">(변경 없음)</option><option value="BASE">(없음 - 윈도우 직속)</option>';
+
+    // Add possible parents (containers not currently selected)
+    state.design.elements.forEach(el => {
+        if (containerTypes.includes(el.type) && !state.selectedElements.includes(el.id)) {
+            if (el.type === 'tab') {
+                const tabs = el.properties?.tabs || [{ label: '탭1' }, { label: '탭2' }, { label: '탭3' }];
+                tabs.forEach((tab, index) => {
+                    const option = document.createElement('option');
+                    option.value = `${el.id}:${index}`;
+                    option.textContent = `${el.name || 'tab'}(${index + 1})`;
+                    select.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.value = el.id;
+                option.textContent = `${el.name || el.type} (${el.type})`;
+                select.appendChild(option);
+            }
+        }
+    });
+}
+
+function updateMultiStyle(e) {
+    const style = e.target.value;
+    if (!style || state.selectedElements.length === 0) return;
+
+    state.selectedElements.forEach(id => {
+        const element = getElementData(id);
+        if (element) {
+            element.properties = element.properties || {};
+            element.properties.style = style;
+            updateElementDOM(element);
+        }
+    });
+
+    saveToHistory();
+    setStatus(`${state.selectedElements.length}개 요소 스타일 일괄 변경됨`);
+}
+
+function updateMultiParent(e) {
+    const value = e.target.value;
+    if (!value || state.selectedElements.length === 0) return;
+
+    state.selectedElements.forEach(id => {
+        const element = getElementData(id);
+        if (!element) return;
+
+        if (value === 'BASE') {
+            element.parentId = null;
+            element.parentTabIndex = undefined;
+        } else if (value.includes(':')) {
+            const [parentId, tabIndex] = value.split(':');
+            element.parentId = parentId;
+            element.parentTabIndex = parseInt(tabIndex);
+        } else {
+            element.parentId = value;
+            element.parentTabIndex = undefined;
+        }
+
+        // Update visibility if parent is a tab
+        if (element.parentId) {
+            const parent = getElementData(element.parentId);
+            if (parent && parent.type === 'tab') {
+                updateTabChildrenVisibility(element.parentId);
+            }
+        }
+        updateElementDOM(element);
+    });
+
+    saveToHistory();
+    setStatus(`${state.selectedElements.length}개 요소 부모 일괄 변경됨`);
+}
+
 function hideElementProperties() {
     document.getElementById('canvas-properties').style.display = 'block';
     document.getElementById('element-properties').style.display = 'none';
+    document.getElementById('multi-properties').style.display = 'none';
 
     const footer = document.getElementById('element-buttons-footer');
     if (footer) footer.style.display = 'none';
@@ -2325,8 +2756,8 @@ function hideElementProperties() {
 }
 
 function updateElementProperties() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     document.getElementById('elem-x').value = element.x;
@@ -2336,8 +2767,8 @@ function updateElementProperties() {
 }
 
 function updateElementFromInput() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length !== 1) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.name = document.getElementById('elem-name').value;
@@ -2355,8 +2786,8 @@ function updateElementFromInput() {
     // Update DOM using the centralized function
     updateElementDOM(element);
 
-    // Re-add resize handles if selected
-    const domEl = document.getElementById(state.selectedElement);
+    // Re-add resize handles
+    const domEl = document.getElementById(element.id);
     if (domEl) {
         domEl.classList.add('selected');
         removeResizeHandles(domEl);
@@ -2555,8 +2986,8 @@ function renderTabList(element) {
 }
 
 function addTab() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length === 0) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element || element.type !== 'tab') return;
 
     element.properties.tabs = element.properties.tabs || [];
@@ -2590,8 +3021,8 @@ function removeTab(elementId, index) {
 }
 
 function updateTabStyle(prop, value) {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length === 0) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element) return;
 
     element.properties = element.properties || {};
@@ -2601,8 +3032,8 @@ function updateTabStyle(prop, value) {
 }
 
 function setTabAlignment(align) {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length === 0) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element || element.type !== 'tab') return;
 
     element.properties = element.properties || {};
@@ -2618,8 +3049,8 @@ function setTabAlignment(align) {
 }
 
 function updateSectionFullWidth() {
-    if (!state.selectedElement) return;
-    const element = getElementData(state.selectedElement);
+    if (state.selectedElements.length === 0) return;
+    const element = getElementData(state.selectedElements[0]);
     if (!element || element.type !== 'section') return;
 
     element.properties = element.properties || {};

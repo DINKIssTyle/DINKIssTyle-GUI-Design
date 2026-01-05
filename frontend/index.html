@@ -252,6 +252,8 @@
                         </select>
                     </div>
 
+
+
                     <!-- Font Properties -->
                     <div id="font-properties">
                         <h4 class="property-section-title">폰트 설정</h4>
@@ -420,6 +422,100 @@
                         </div>
                     </div>
 
+                </div>
+
+                <!-- Multi-Element Properties -->
+                <div class="property-section" id="multi-properties" style="display: none;">
+                    <h3 class="property-section-title">다중 선택 속성 (<span id="multi-count">0</span>)</h3>
+
+                    <!-- Layout Tools (Moved here) -->
+                    <div class="layout-tools" style="margin-top: 5px; margin-bottom: 20px;">
+                        <div class="layout-group">
+                            <div class="layout-group-title">정렬 (Align)</div>
+                            <div class="layout-btns">
+                                <button class="layout-btn" data-action="align-left" title="왼쪽 정렬">
+                                    <span class="icon">⇤</span>
+                                    <span>Left</span>
+                                </button>
+                                <button class="layout-btn" data-action="align-center" title="가로 중앙 정렬">
+                                    <span class="icon">⬌</span>
+                                    <span>Center</span>
+                                </button>
+                                <button class="layout-btn" data-action="align-right" title="오른쪽 정렬">
+                                    <span class="icon">⇥</span>
+                                    <span>Right</span>
+                                </button>
+                                <button class="layout-btn" data-action="align-top" title="위쪽 정렬">
+                                    <span class="icon">⤒</span>
+                                    <span>Top</span>
+                                </button>
+                                <button class="layout-btn" data-action="align-middle" title="세로 중앙 정렬">
+                                    <span class="icon">⬍</span>
+                                    <span>Middle</span>
+                                </button>
+                                <button class="layout-btn" data-action="align-bottom" title="아래쪽 정렬">
+                                    <span class="icon">⤓</span>
+                                    <span>Bottom</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="layout-group">
+                            <div class="layout-group-title">분포 (Distribute)</div>
+                            <div class="layout-btns distribute-btns">
+                                <button class="layout-btn" data-action="distribute-h" title="가로 간격 동일하게">
+                                    <span class="icon">↔</span>
+                                    <span>Horizontal</span>
+                                </button>
+                                <button class="layout-btn" data-action="distribute-v" title="세로 간격 동일하게">
+                                    <span class="icon">↕</span>
+                                    <span>Vertical</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="layout-group">
+                            <div class="layout-group-title">레이어 (Layer)</div>
+                            <div class="layout-btns layer-btns">
+                                <button class="layout-btn layer-btn" data-action="layer-front" title="맨 앞으로 가져오기">
+                                    <span class="icon">⏫</span>
+                                    <span>Front</span>
+                                </button>
+                                <button class="layout-btn layer-btn" data-action="layer-forward" title="앞으로 가져오기">
+                                    <span class="icon">🔼</span>
+                                    <span>Forward</span>
+                                </button>
+                                <button class="layout-btn layer-btn" data-action="layer-backward" title="뒤로 보내기">
+                                    <span class="icon">🔽</span>
+                                    <span>Backward</span>
+                                </button>
+                                <button class="layout-btn layer-btn" data-action="layer-back" title="맨 뒤로 보내기">
+                                    <span class="icon">⏬</span>
+                                    <span>Back</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="property-section-title">일괄 변경</h4>
+                    <div class="property-row">
+                        <label>공통 스타일</label>
+                        <select id="multi-style">
+                            <option value="">(변경 없음)</option>
+                            <option value="default">기본</option>
+                            <option value="primary">주요</option>
+                            <option value="secondary">보조</option>
+                            <option value="success">성공</option>
+                            <option value="warning">경고</option>
+                            <option value="danger">위험</option>
+                        </select>
+                    </div>
+                    <div class="property-row">
+                        <label>공통 부모</label>
+                        <select id="multi-parent">
+                            <option value="">(변경 없음)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Footer area for buttons (shown only when element is selected) -->

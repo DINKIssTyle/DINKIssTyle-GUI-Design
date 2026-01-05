@@ -409,6 +409,17 @@ body {
 .canvas-element.selected {
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    z-index: 1000 !important;
+}
+
+/* Multi-selection box */
+.selection-box {
+    position: absolute;
+    border: 1px dashed var(--accent-primary);
+    background: rgba(102, 126, 234, 0.1);
+    pointer-events: none;
+    z-index: 2000;
+    display: none;
 }
 
 .canvas-element.dragging {
@@ -1424,4 +1435,87 @@ input[type="color"]::-webkit-color-swatch {
 
 .modal-table input:focus {
     background: rgba(102, 126, 234, 0.1);
+}
+
+/* Layout Tools UI */
+.layout-tools {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.layout-group {
+    margin-bottom: 12px;
+}
+
+.layout-group:last-child {
+    margin-bottom: 0;
+}
+
+.layout-group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.layout-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.layout-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 2px;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all var(--transition-fast);
+}
+
+.layout-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.layout-btn .icon {
+    font-size: 16px;
+    margin-bottom: 2px;
+}
+
+.layout-btn span:not(.icon) {
+    font-size: 9px;
+    font-weight: 500;
+}
+
+.distribute-btns {
+    grid-template-columns: 1fr 1fr;
+}
+
+.layer-btns {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.layer-btn {
+    padding: 8px 2px;
+}
+
+/* Selection Box */
+.selection-box {
+    position: absolute;
+    border: 1px solid var(--accent-primary);
+    background: rgba(102, 126, 234, 0.15);
+    z-index: 9999;
+    pointer-events: none;
+    display: none;
 }
