@@ -92,7 +92,7 @@ func (a *App) GetCurrentFilePath() string {
 }
 
 // ExportJSON exports the design to a JSON file
-func (a *App) ExportJSON() (string, error) {
+func (a *App) ExportJSON(jsonContent string) (string, error) {
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Export as JSON",
 		DefaultFilename: "gui_design.json",
@@ -107,12 +107,8 @@ func (a *App) ExportJSON() (string, error) {
 		return "", nil
 	}
 
-	data, err := json.MarshalIndent(a.currentDesign, "", "  ")
-	if err != nil {
-		return "", err
-	}
-
-	err = os.WriteFile(filePath, data, 0644)
+	// Use provided JSON content directly
+	err = os.WriteFile(filePath, []byte(jsonContent), 0644)
 	if err != nil {
 		return "", err
 	}
@@ -267,4 +263,3 @@ func (a *App) NewDesign() GUIDesign {
 	a.currentFilePath = "" // 새 디자인은 경로 초기화
 	return a.currentDesign
 }
-

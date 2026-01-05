@@ -262,8 +262,12 @@
                                 <input type="number" id="font-size" min="8" max="72" value="14" />
                             </div>
                             <div class="property-row half">
-                                <label>색상</label>
-                                <input type="color" id="font-color" value="#e8e8f0" />
+                                <label>서체</label>
+                                <select id="font-family">
+                                    <option value="sans-serif">Sans Serif</option>
+                                    <option value="serif">Serif</option>
+                                    <option value="monospace">Monospace</option>
+                                </select>
                             </div>
                         </div>
                         <div class="property-row">
@@ -274,18 +278,16 @@
                                     title="이탤릭"><i>I</i></button>
                             </div>
                         </div>
+                        <div class="property-row">
+                            <label>색상</label>
+                            <input type="color" id="font-color" value="#e8e8f0" />
+                        </div>
                     </div>
 
                     <!-- Background Color -->
                     <div class="property-row">
                         <label>배경 색상</label>
-                        <div class="color-with-none">
-                            <input type="color" id="elem-bgcolor" value="#1e1e32" />
-                            <label class="none-checkbox">
-                                <input type="checkbox" id="elem-bgcolor-none" />
-                                없음
-                            </label>
-                        </div>
+                        <input type="color" id="elem-bgcolor" value="#1e1e32" />
                     </div>
 
                     <!-- Tab Colors (shown only for tabs) -->
@@ -428,8 +430,9 @@
         </main>
     </div>
 
+
     <!-- Settings Modal -->
-    <div id="settings-modal" class="modal" style="display: none;">
+    <div id="settings-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>프로젝트 설정</h3>

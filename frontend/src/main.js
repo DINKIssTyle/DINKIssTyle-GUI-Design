@@ -265,11 +265,13 @@ function applyLoadedDesign(design) {
 
 async function exportJSON() {
     syncDesignToBackend();
+    const jsonStr = JSON.stringify(designToJSON(state.design), null, 2);
 
     // Try Wails backend first
     if (window.go?.main?.App?.ExportJSON) {
         try {
-            const path = await window.go.main.App.ExportJSON();
+            // Pass the formatted JSON string to backend
+            const path = await window.go.main.App.ExportJSON(jsonStr);
             if (path) {
                 setStatus('JSON 내보내기 완료');
                 return;
@@ -280,7 +282,6 @@ async function exportJSON() {
     }
 
     // Browser fallback
-    const jsonStr = JSON.stringify(designToJSON(state.design), null, 2);
     downloadFile(jsonStr, 'gui_design.json', 'application/json');
     setStatus('JSON 내보내기 완료 (다운로드)');
 }
@@ -940,6 +941,11 @@ function applyFontStyles(el, element) {
         el.style.fontSize = props.fontSize + 'px';
     }
 
+    // Font Family
+    if (props.fontFamily) {
+        el.style.fontFamily = props.fontFamily;
+    }
+
     // Font Color (Fallback to settings)
     if (props.fontColor) {
         el.style.color = props.fontColor;
@@ -1375,12 +1381,12 @@ function setupPropertyEvents() {
     // Font properties
     document.getElementById('font-size').addEventListener('input', updateFontProperties);
     document.getElementById('font-color').addEventListener('input', updateFontProperties);
+    document.getElementById('font-family').addEventListener('change', updateFontProperties);
     document.getElementById('btn-bold').addEventListener('click', toggleBold);
     document.getElementById('btn-italic').addEventListener('click', toggleItalic);
 
     // Background color
     document.getElementById('elem-bgcolor').addEventListener('input', updateBackgroundColor);
-    document.getElementById('elem-bgcolor-none').addEventListener('change', toggleBackgroundNone);
 
     // Tab Management & Styling
     document.getElementById('btn-add-tab').addEventListener('click', addTab);
@@ -1450,6 +1456,7 @@ function updateFontProperties() {
     element.properties = element.properties || {};
     element.properties.fontSize = parseInt(document.getElementById('font-size').value) || 14;
     element.properties.fontColor = document.getElementById('font-color').value || '#e8e8f0';
+    element.properties.fontFamily = document.getElementById('font-family').value || 'sans-serif';
 
     updateElementDOM(element);
 }
@@ -1606,11 +1613,11 @@ function openSettingsModal() {
     document.getElementById('set-comp-bg-transparent').checked = settings.componentBgTransparent || false;
 
     generatePalette();
-    document.getElementById('settings-modal').style.display = 'flex';
+    document.getElementById('settings-modal').classList.add('show');
 }
 
 function closeSettingsModal() {
-    document.getElementById('settings-modal').style.display = 'none';
+    document.getElementById('settings-modal').classList.remove('show');
 }
 
 function saveSettings() {
@@ -1706,9 +1713,27 @@ function setupColorControl(inputId, propName, element, defaultColor = null) {
     const input = document.getElementById(inputId);
     if (!input) return;
 
-    // Reset old logic if any
+    // We need to clean up the parent container to remove old extras or duplicated elements
+    // Typically structure is: <div class="property-row"> <label>...</label> <input> ... </div>
+    // usage in HTML: <div class="property-row"> <label>...</label> <input type="color"...> </div>
+    // But sometimes it's wrapped differently. Let's rely on parent.
+    const parent = input.parentNode;
+
+    // Check if we already processed this input and wrapped it or added things.
+    // To be safe, let's remove ALL siblings that are not the label.
+    // Actually, simple way: remove specific classes we added.
+    const oldExtras = parent.querySelectorAll('.control-extras');
+    oldExtras.forEach(el => el.remove());
+    // Also remove any stray buttons if we added them directly before (legacy cleanup)
+    const oldButtons = parent.querySelectorAll('button');
+    oldButtons.forEach(btn => {
+        if (btn.textContent.includes('기본값')) btn.remove();
+    });
+
+    // Re-bind input events to the EXISTING input (or replace it to clear listeners)
+    // Replacing is safer to avoid duplicate listeners
     const newItem = input.cloneNode(true);
-    if (input.parentNode) input.parentNode.replaceChild(newItem, input);
+    parent.replaceChild(newItem, input);
 
     // Bind change event
     newItem.addEventListener('input', (e) => {
@@ -1727,26 +1752,22 @@ function setupColorControl(inputId, propName, element, defaultColor = null) {
         newItem.value = defaultColor || '#000000';
     }
 
-    // Now, setup Extras (Palette + Default Button)
-    let parent = newItem.parentNode;
-    let extras = parent.querySelector('.control-extras');
-    if (!extras) {
-        extras = document.createElement('div');
-        extras.className = 'control-extras';
-        extras.style.display = 'flex';
-        extras.style.alignItems = 'center';
-        extras.style.gap = '8px';
-        extras.style.marginTop = '4px';
-        parent.appendChild(extras);
-    }
-    extras.innerHTML = ''; // Clear previous
+    // Create Extras Container
+    const extras = document.createElement('div');
+    extras.className = 'control-extras';
+    extras.style.display = 'flex';
+    extras.style.alignItems = 'center';
+    extras.style.gap = '8px';
+    extras.style.marginTop = '6px';
+    extras.style.width = '100%';
+    parent.appendChild(extras);
 
     // 1. Default Button
     const btnDefault = document.createElement('button');
     btnDefault.textContent = '기본값';
     btnDefault.className = 'btn-icon-small';
     btnDefault.style.width = 'auto';
-    btnDefault.style.padding = '2px 8px';
+    btnDefault.style.padding = '3px 8px';
     btnDefault.style.fontSize = '11px';
     btnDefault.title = '프로젝트 설정의 기본값을 사용합니다';
     btnDefault.onclick = () => {
@@ -1759,11 +1780,32 @@ function setupColorControl(inputId, propName, element, defaultColor = null) {
     };
     extras.appendChild(btnDefault);
 
-    // 2. Palette (Mini)
+    // 2. None Button (투명/없음)
+    const btnNone = document.createElement('button');
+    btnNone.textContent = '없음';
+    btnNone.className = 'btn-icon-small';
+    btnNone.style.width = 'auto';
+    btnNone.style.padding = '3px 8px';
+    btnNone.style.fontSize = '11px';
+    btnNone.title = '색상을 투명 또는 없음으로 설정합니다';
+    btnNone.onclick = () => {
+        if (element.properties) {
+            element.properties[propName] = 'transparent';
+            updateElementDOM(element);
+            saveToHistory();
+            showElementProperties();
+        }
+    };
+    extras.appendChild(btnNone);
+
+    // 2. Palette Container (Mini) - In same row with button
     const paletteContainer = document.createElement('div');
     paletteContainer.style.display = 'flex';
+    paletteContainer.style.flexWrap = 'wrap';
     paletteContainer.style.gap = '4px';
+    paletteContainer.style.flex = '1';
 
+    // Collect Colors
     const colors = new Set();
     if (state.design.settings) {
         Object.values(state.design.settings).forEach(val => {
@@ -1772,12 +1814,14 @@ function setupColorControl(inputId, propName, element, defaultColor = null) {
     }
     if (state.design.canvas.bgColor) colors.add(state.design.canvas.bgColor);
 
-    Array.from(colors).slice(0, 8).forEach(color => {
+    // Render Chips
+    Array.from(colors).slice(0, 10).forEach(color => {
         const chip = document.createElement('div');
-        chip.style.width = '16px';
-        chip.style.height = '16px';
+        chip.style.width = '18px';
+        chip.style.height = '18px';
         chip.style.backgroundColor = color;
         chip.style.border = '1px solid #555';
+        chip.style.borderRadius = '3px';
         chip.style.cursor = 'pointer';
         chip.title = color;
         chip.onclick = () => {
@@ -2008,13 +2052,13 @@ function showElementProperties() {
 
     // Font properties
     document.getElementById('font-size').value = element.properties?.fontSize || 14;
+    document.getElementById('font-family').value = element.properties?.fontFamily || 'sans-serif';
     setupColorControl('font-color', 'fontColor', element);
     document.getElementById('btn-bold').classList.toggle('active', element.properties?.fontBold || false);
     document.getElementById('btn-italic').classList.toggle('active', element.properties?.fontItalic || false);
 
     // Background color
     setupColorControl('elem-bgcolor', 'bgColor', element);
-    document.getElementById('elem-bgcolor-none').checked = element.properties?.bgNone || false;
 
     // Tab Management & Appearance
     const tabMgmt = document.getElementById('tab-management');
