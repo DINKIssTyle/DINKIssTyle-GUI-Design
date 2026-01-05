@@ -150,18 +150,22 @@ function handleKeyDown(e) {
 
     switch (e.key.toLowerCase()) {
         case 'arrowup':
+            if (typing) break;
             e.preventDefault();
             moveSelected(0, e.shiftKey ? -5 : -1);
             break;
         case 'arrowdown':
+            if (typing) break;
             e.preventDefault();
             moveSelected(0, e.shiftKey ? 5 : 1);
             break;
         case 'arrowleft':
+            if (typing) break;
             e.preventDefault();
             moveSelected(e.shiftKey ? -5 : -1, 0);
             break;
         case 'arrowright':
+            if (typing) break;
             e.preventDefault();
             moveSelected(e.shiftKey ? 5 : 1, 0);
             break;
