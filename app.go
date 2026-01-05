@@ -94,14 +94,17 @@ func (a *App) startup(ctx context.Context) {
 // ShowConfirmDialog shows a native confirmation dialog and returns user's choice
 func (a *App) ShowConfirmDialog(title string, message string) bool {
 	result, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-		Type:    runtime.QuestionDialog,
-		Title:   title,
-		Message: message,
+		Type:          runtime.QuestionDialog,
+		Title:         title,
+		Message:       message,
+		Buttons:       []string{"Yes", "No"},
+		DefaultButton: "No",
+		CancelButton:  "No",
 	})
 	if err != nil {
 		return false
 	}
-	// QuestionDialog returns "Yes" or "No"
+	// Returns button text or "Yes"/"No" depending on platform
 	return result == "Yes"
 }
 
