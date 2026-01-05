@@ -1612,6 +1612,13 @@ function openSettingsModal() {
     document.getElementById('set-input-text').value = settings.inputText || '#ffffff';
     document.getElementById('set-comp-bg-transparent').checked = settings.componentBgTransparent || false;
 
+    // Use unified color control for all settings colors
+    setupColorControl('set-window-bg', 'windowBg', { properties: state.design.settings }, '#2a2a3e');
+    setupColorControl('set-comp-bg', 'componentBg', { properties: state.design.settings }, '#ffffff');
+    setupColorControl('set-comp-text', 'componentText', { properties: state.design.settings }, '#e8e8f0');
+    setupColorControl('set-input-bg', 'inputBg', { properties: state.design.settings }, '#333344');
+    setupColorControl('set-input-text', 'inputText', { properties: state.design.settings }, '#ffffff');
+
     generatePalette();
     document.getElementById('settings-modal').classList.add('show');
 }
@@ -1709,7 +1716,7 @@ function updateTableSize() {
     updateElementDOM(element);
 }
 
-function setupColorControl(inputId, propName, element, defaultColor = null) {
+function setupColorControl(inputId, propName, element, defaultColor = null, onUpdate = null) {
     const input = document.getElementById(inputId);
     if (!input) return;
 
@@ -1737,9 +1744,23 @@ function setupColorControl(inputId, propName, element, defaultColor = null) {
 
     // Bind change event
     newItem.addEventListener('input', (e) => {
-        if (!element.properties) element.properties = {};
-        element.properties[propName] = e.target.value;
-        updateElementDOM(element);
+        const val = e.target.value;
+        if (element.id) {
+            if (!element.properties) element.properties = {};
+            element.properties[propName] = val;
+            updateElementDOM(element);
+        } else if (element.properties) {
+            element.properties[propName] = val;
+            // Trigger specific updates for non-element targets
+            if (inputId === 'canvas-bgcolor' || inputId.startsWith('set-')) {
+                updateCanvasSize();
+                if (inputId.startsWith('set-')) {
+                    // Update all elements to respect potential global setting changes if they don't have overrides
+                    state.design.elements.forEach(el => updateElementDOM(el));
+                }
+            }
+        }
+        if (typeof onUpdate === 'function') onUpdate(val);
     });
     newItem.addEventListener('change', () => {
         saveToHistory();
@@ -1771,9 +1792,15 @@ function setupColorControl(inputId, propName, element, defaultColor = null) {
     btnDefault.style.fontSize = '11px';
     btnDefault.title = '프로젝트 설정의 기본값을 사용합니다';
     btnDefault.onclick = () => {
-        if (element.properties) {
-            element.properties[propName] = null; // Reset to null
-            updateElementDOM(element);
+        const target = element.id ? element.properties : element.properties;
+        if (target) {
+            target[propName] = null; // Reset to null
+            if (element.id) {
+                updateElementDOM(element);
+            } else {
+                updateCanvasSize();
+                state.design.elements.forEach(el => updateElementDOM(el));
+            }
             saveToHistory();
             showElementProperties();
         }
@@ -1789,9 +1816,14 @@ function setupColorControl(inputId, propName, element, defaultColor = null) {
     btnNone.style.fontSize = '11px';
     btnNone.title = '색상을 투명 또는 없음으로 설정합니다';
     btnNone.onclick = () => {
-        if (element.properties) {
-            element.properties[propName] = 'transparent';
-            updateElementDOM(element);
+        const target = element.id ? element.properties : element.properties;
+        if (target) {
+            target[propName] = 'transparent';
+            if (element.id) {
+                updateElementDOM(element);
+            } else {
+                updateCanvasSize();
+            }
             saveToHistory();
             showElementProperties();
         }
@@ -2007,6 +2039,7 @@ function updateCanvasSize() {
     }
 
     dom.canvasSize.textContent = `${width} × ${height}`;
+    dom.canvas.style.backgroundColor = state.design.canvas.bgColor || '#2a2a3e';
 }
 
 function updateCanvasFromState() {
@@ -2023,6 +2056,9 @@ function showElementProperties() {
 
     document.getElementById('canvas-properties').style.display = 'none';
     document.getElementById('element-properties').style.display = 'block';
+
+    const footer = document.getElementById('element-buttons-footer');
+    if (footer) footer.style.display = 'block';
 
     document.getElementById('elem-id').value = element.id;
     document.getElementById('elem-type').value = element.type;
@@ -2145,6 +2181,18 @@ function showElementProperties() {
 function hideElementProperties() {
     document.getElementById('canvas-properties').style.display = 'block';
     document.getElementById('element-properties').style.display = 'none';
+
+    const footer = document.getElementById('element-buttons-footer');
+    if (footer) footer.style.display = 'none';
+
+    // Update canvas properties list
+    document.getElementById('canvas-title').value = state.design.canvas.title || '';
+    document.getElementById('canvas-width').value = state.design.canvas.width;
+    document.getElementById('canvas-height').value = state.design.canvas.height;
+    document.getElementById('canvas-flexible').checked = state.design.canvas.flexible || false;
+
+    // Unified color control for canvas background
+    setupColorControl('canvas-bgcolor', 'bgColor', { properties: state.design.canvas });
 }
 
 function updateElementProperties() {

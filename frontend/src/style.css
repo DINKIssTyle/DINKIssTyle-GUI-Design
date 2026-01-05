@@ -86,7 +86,7 @@ body {
 .toolbar-left {
     display: flex;
     align-items: center;
-    width: 200px;
+    width: 250px;
     flex-shrink: 0;
 }
 
@@ -94,7 +94,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    width: 200px;
+    width: 250px;
     flex-shrink: 0;
 }
 
@@ -161,10 +161,7 @@ body {
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.toolbar-right {
-    display: flex;
-    align-items: center;
-}
+
 
 .status-text {
     font-size: 12px;
@@ -172,6 +169,11 @@ body {
     padding: 4px 12px;
     background: var(--bg-tertiary);
     border-radius: 12px;
+    max-width: 230px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
 }
 
 /* ===== Main Content ===== */
@@ -199,6 +201,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    height: 100%;
 }
 
 .properties-panel .property-section {
@@ -578,15 +581,7 @@ body {
     cursor: w-resize;
 }
 
-/* ===== Properties Panel ===== */
-.properties-panel {
-    width: var(--properties-width);
-    background: var(--bg-panel);
-    border-left: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
+
 
 .property-section {
     padding: 16px;
@@ -873,99 +868,9 @@ body {
     padding-right: 8px;
 }
 
-/* ===== Modal ===== */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-}
 
-.modal {
-    background: var(--bg-panel);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
-    min-width: 400px;
-    max-width: 600px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-}
 
-.modal-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
 
-.modal-header h3 {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 4px 8px;
-}
-
-.modal-close:hover {
-    color: var(--text-primary);
-}
-
-.modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.modal-footer {
-    padding: 16px 20px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-}
-
-.modal-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.modal-table td {
-    border: 1px solid var(--border-color);
-    padding: 0;
-}
-
-.modal-table input {
-    width: 100%;
-    padding: 8px;
-    background: var(--bg-tertiary);
-    border: none;
-    color: var(--text-primary);
-    font-size: 13px;
-}
-
-.modal-table input:focus {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: -2px;
-}
-
-/* ===== Properties Panel Scrollable ===== */
-.properties-panel {
-    overflow-y: auto;
-}
 
 #element-properties {
     overflow-y: auto;
@@ -1288,10 +1193,7 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .modal-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    margin: auto;
     background-color: var(--bg-panel);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -1307,12 +1209,12 @@ input[type="color"]::-webkit-color-swatch {
 @keyframes modalFadeIn {
     from {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.95);
+        transform: scale(0.95);
     }
 
     to {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+        transform: scale(1);
     }
 }
 

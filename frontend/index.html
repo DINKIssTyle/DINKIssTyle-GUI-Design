@@ -264,7 +264,7 @@
                             <div class="property-row half">
                                 <label>서체</label>
                                 <select id="font-family">
-                                    <option value="sans-serif">Sans Serif</option>
+                                    <option value="sans-serif">Sans</option>
                                     <option value="serif">Serif</option>
                                     <option value="monospace">Monospace</option>
                                 </select>
@@ -419,10 +419,15 @@
                         </div>
                     </div>
 
-                    <div class="property-row" style="margin-top: 16px;">
+                </div>
+
+                <!-- Footer area for buttons (shown only when element is selected) -->
+                <div id="element-buttons-footer" class="property-section"
+                    style="display: none; border-top: 1px solid var(--border-color); margin-top: auto;">
+                    <div class="property-row">
                         <button id="btn-duplicate-element" class="btn-secondary">컴포넌트 복제 (Ctrl+D)</button>
                     </div>
-                    <div class="property-row">
+                    <div class="property-row" style="margin-bottom: 0;">
                         <button id="btn-delete-element" class="btn-delete">컴포넌트 삭제</button>
                     </div>
                 </div>
