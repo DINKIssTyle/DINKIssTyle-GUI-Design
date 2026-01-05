@@ -18,34 +18,39 @@ type CanvasConfig struct {
 	Height   int    `json:"height" xml:"height"`
 	Flexible bool   `json:"flexible" xml:"flexible"`
 	Title    string `json:"title" xml:"title"`
-}
-
-// ElementProperties represents component-specific properties
-type ElementProperties struct {
-	Text        string `json:"text,omitempty" xml:"text,omitempty"`
-	Placeholder string `json:"placeholder,omitempty" xml:"placeholder,omitempty"`
-	Options     string `json:"options,omitempty" xml:"options,omitempty"`
-	Style       string `json:"style,omitempty" xml:"style,omitempty"`
+	BgColor  string `json:"bgColor" xml:"bgColor"`
 }
 
 // GUIElement represents a single GUI component
 type GUIElement struct {
-	ID          string            `json:"id" xml:"id,attr"`
-	Type        string            `json:"type" xml:"type"`
-	Name        string            `json:"name" xml:"name"`
-	Description string            `json:"description" xml:"description"`
-	X           int               `json:"x" xml:"x"`
-	Y           int               `json:"y" xml:"y"`
-	Width       int               `json:"width" xml:"width"`
-	Height      int               `json:"height" xml:"height"`
-	Properties  ElementProperties `json:"properties" xml:"properties"`
+	ID          string                 `json:"id" xml:"id,attr"`
+	Type        string                 `json:"type" xml:"type"`
+	Name        string                 `json:"name" xml:"name"`
+	Description string                 `json:"description" xml:"description"`
+	X           int                    `json:"x" xml:"x"`
+	Y           int                    `json:"y" xml:"y"`
+	Width       int                    `json:"width" xml:"width"`
+	Height      int                    `json:"height" xml:"height"`
+	ZIndex      int                    `json:"zIndex" xml:"zIndex"`
+	Properties  map[string]interface{} `json:"properties" xml:"properties"`
+}
+
+// ProjectSettings represents default global styles
+type ProjectSettings struct {
+	WindowBg               string `json:"windowBg"`
+	ComponentBg            string `json:"componentBg"`
+	ComponentText          string `json:"componentText"`
+	InputBg                string `json:"inputBg"`
+	InputText              string `json:"inputText"`
+	ComponentBgTransparent bool   `json:"componentBgTransparent"`
 }
 
 // GUIDesign represents the complete design
 type GUIDesign struct {
-	XMLName  xml.Name     `json:"-" xml:"GUIDesign"`
-	Canvas   CanvasConfig `json:"canvas" xml:"canvas"`
-	Elements []GUIElement `json:"elements" xml:"elements>element"`
+	XMLName  xml.Name        `json:"-" xml:"GUIDesign"`
+	Canvas   CanvasConfig    `json:"canvas" xml:"canvas"`
+	Settings ProjectSettings `json:"settings" xml:"settings"`
+	Elements []GUIElement    `json:"elements" xml:"elements>element"`
 }
 
 // App struct
@@ -64,6 +69,14 @@ func NewApp() *App {
 				Height:   600,
 				Flexible: false,
 				Title:    "New Design",
+				BgColor:  "#2a2a3e",
+			},
+			Settings: ProjectSettings{
+				WindowBg:      "#2a2a3e",
+				ComponentBg:   "#ffffff",
+				ComponentText: "#e8e8f0",
+				InputBg:       "#333344",
+				InputText:     "#ffffff",
 			},
 			Elements: []GUIElement{},
 		},
@@ -257,6 +270,14 @@ func (a *App) NewDesign() GUIDesign {
 			Height:   600,
 			Flexible: false,
 			Title:    "New Design",
+			BgColor:  "#2a2a3e",
+		},
+		Settings: ProjectSettings{
+			WindowBg:      "#2a2a3e",
+			ComponentBg:   "#ffffff",
+			ComponentText: "#e8e8f0",
+			InputBg:       "#333344",
+			InputText:     "#ffffff",
 		},
 		Elements: []GUIElement{},
 	}

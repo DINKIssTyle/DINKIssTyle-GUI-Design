@@ -1392,3 +1392,35 @@ input[type="color"]::-webkit-color-swatch {
     display: flex;
     justify-content: flex-end;
 }
+
+/* ===== Table Editor Specific ===== */
+.table-editor-container {
+    overflow: auto;
+    max-height: 50vh;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.modal-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modal-table td {
+    border: 1px solid var(--border-color);
+    padding: 0;
+}
+
+.modal-table input {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+}
+
+.modal-table input:focus {
+    background: rgba(102, 126, 234, 0.1);
+}

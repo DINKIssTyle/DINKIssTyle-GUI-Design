@@ -158,7 +158,15 @@ async function newDesign() {
             width: 800,
             height: 600,
             flexible: false,
-            title: 'New Design'
+            title: 'New Design',
+            bgColor: '#2a2a3e'
+        },
+        settings: {
+            windowBg: '#2a2a3e',
+            componentBg: '#ffffff',
+            componentText: '#e8e8f0',
+            inputBg: '#333344',
+            inputText: '#ffffff'
         },
         elements: []
     };
@@ -234,16 +242,34 @@ async function loadDesign() {
 }
 
 function applyLoadedDesign(design) {
-    // Compatibility for new JSON format (Window/Components)
+    // 1. Normalize Structure
     if (design.Window || design.Components) {
+        // C# / Legacy specific mapping
         state.design = {
-            canvas: design.Window || state.design.canvas,
+            canvas: design.Window || {},
             elements: design.Components || [],
-            settings: design.settings || state.design.settings // Include settings if available
+            settings: design.settings || {}
         };
     } else {
-        // Legacy format
-        state.design = design;
+        // Native mapping
+        state.design = design || { canvas: {}, elements: [], settings: {} };
+    }
+
+    // 2. Ensure deep defaults for canvas
+    if (!state.design.canvas) state.design.canvas = {};
+    if (!state.design.canvas.width) state.design.canvas.width = 800;
+    if (!state.design.canvas.height) state.design.canvas.height = 600;
+    if (!state.design.canvas.bgColor) state.design.canvas.bgColor = '#2a2a3e';
+
+    // 3. Ensure deep defaults for settings
+    if (!state.design.settings) {
+        state.design.settings = {
+            windowBg: state.design.canvas.bgColor || '#2a2a3e',
+            componentBg: '#ffffff',
+            componentText: '#e8e8f0',
+            inputBg: '#333344',
+            inputText: '#ffffff'
+        };
     }
 
     state.selectedElement = null;
@@ -314,16 +340,33 @@ function designToJSON(design) {
         };
 
         // Flatten properties
-        // Merge element.properties into the component object directly or under 'properties' key?
-        // User asked for "font properties, button properties (e.g. color) to be included".
-        // Let's put them under a 'properties' key but ensure ALL values are there.
         comp.properties = { ...el.properties };
 
-        // Ensure Specific Defaults if missing (consistency)
-        if (el.type === 'button') {
-            if (!comp.properties.bgColor) comp.properties.bgColor = state.design.settings?.componentBgColor || '#667eea'; // fallback
-            if (!comp.properties.fontColor) comp.properties.fontColor = state.design.settings?.componentTextColor || '#ffffff';
+        // Ensure Specific Defaults from Project Settings if missing or null
+        const settings = state.design.settings || {};
+        const isInteractive = ['button', 'input', 'textarea', 'dropdown'].includes(el.type);
+
+        // 1. Background Color
+        if (comp.properties.bgNone) {
+            comp.properties.bgColor = 'transparent';
+        } else if (!comp.properties.bgColor) {
+            if (isInteractive) {
+                comp.properties.bgColor = settings.inputBg || '#333344';
+            } else if (settings.componentBgTransparent) {
+                comp.properties.bgColor = 'transparent';
+            } else {
+                comp.properties.bgColor = settings.componentBg || '#ffffff';
+                if (['label', 'image', 'icon'].includes(el.type)) comp.properties.bgColor = 'transparent';
+            }
         }
+
+        // 2. Font Color
+        if (!comp.properties.fontColor) {
+            comp.properties.fontColor = isInteractive ? (settings.inputText || '#ffffff') : (settings.componentText || '#e8e8f0');
+        }
+
+        // 3. Font Size (Ensure default)
+        if (!comp.properties.fontSize) comp.properties.fontSize = 14;
 
         return comp;
     });
@@ -388,14 +431,32 @@ function designToXML(design) {
         result += `${indent}    <TextAlign>${el.properties?.textAlign || 'center'}</TextAlign>\n`;
 
         // Font properties
-        if (el.properties?.fontSize) result += `${indent}    <fontSize>${el.properties.fontSize}</fontSize>\n`;
-        if (el.properties?.fontColor) result += `${indent}    <fontColor>${el.properties.fontColor}</fontColor>\n`;
+        const settings = state.design.settings || {};
+        const isInteractive = ['button', 'input', 'textarea', 'dropdown'].includes(el.type);
+
+        const fontSize = el.properties?.fontSize || 14;
+        const fontColor = el.properties?.fontColor || (isInteractive ? (settings.inputText || '#ffffff') : (settings.componentText || '#e8e8f0'));
+
+        result += `${indent}    <fontSize>${fontSize}</fontSize>\n`;
+        result += `${indent}    <fontColor>${fontColor}</fontColor>\n`;
         if (el.properties?.fontBold) result += `${indent}    <fontBold>true</fontBold>\n`;
         if (el.properties?.fontItalic) result += `${indent}    <fontItalic>true</fontItalic>\n`;
 
         // Background
-        if (el.properties?.bgColor) result += `${indent}    <bgColor>${el.properties.bgColor}</bgColor>\n`;
-        if (el.properties?.bgNone) result += `${indent}    <bgNone>true</bgNone>\n`;
+        let bgColor = el.properties?.bgColor;
+        if (el.properties?.bgNone) {
+            bgColor = 'transparent';
+        } else if (!bgColor) {
+            if (isInteractive) {
+                bgColor = settings.inputBg || '#333344';
+            } else if (settings.componentBgTransparent) {
+                bgColor = 'transparent';
+            } else {
+                bgColor = settings.componentBg || '#ffffff';
+                if (['label', 'image', 'icon'].includes(el.type)) bgColor = 'transparent';
+            }
+        }
+        result += `${indent}    <bgColor>${bgColor}</bgColor>\n`;
 
         // Parent/Tab relationship (for AI understanding)
         if (el.parentId) {
@@ -1605,12 +1666,12 @@ function openSettingsModal() {
     const settings = state.design.settings || {};
     const canvasBg = state.design.canvas.bgColor || '#2a2a3e';
 
-    document.getElementById('set-window-bg').value = settings.windowBg || canvasBg;
-    document.getElementById('set-comp-bg').value = settings.componentBg || '#ffffff';
-    document.getElementById('set-comp-text').value = settings.componentText || '#e8e8f0';
-    document.getElementById('set-input-bg').value = settings.inputBg || '#333344';
-    document.getElementById('set-input-text').value = settings.inputText || '#ffffff';
-    document.getElementById('set-comp-bg-transparent').checked = settings.componentBgTransparent || false;
+    document.getElementById('set-window-bg').value = (settings.windowBg && settings.windowBg !== 'transparent') ? settings.windowBg : canvasBg;
+    document.getElementById('set-comp-bg').value = (settings.componentBg && settings.componentBg !== 'transparent') ? settings.componentBg : '#ffffff';
+    document.getElementById('set-comp-text').value = (settings.componentText && settings.componentText !== 'transparent') ? settings.componentText : '#e8e8f0';
+    document.getElementById('set-input-bg').value = (settings.inputBg && settings.inputBg !== 'transparent') ? settings.inputBg : '#333344';
+    document.getElementById('set-input-text').value = (settings.inputText && settings.inputText !== 'transparent') ? settings.inputText : '#ffffff';
+    // document.getElementById('set-comp-bg-transparent').checked = settings.componentBgTransparent || false; (REMOVED)
 
     // Use unified color control for all settings colors
     setupColorControl('set-window-bg', 'windowBg', { properties: state.design.settings }, '#2a2a3e');
@@ -1630,11 +1691,11 @@ function closeSettingsModal() {
 function saveSettings() {
     state.design.settings = {
         windowBg: document.getElementById('set-window-bg').value,
-        componentBg: document.getElementById('set-comp-bg').value,
+        componentBg: state.design.settings.componentBg, // Trust the value from setupColorControl
         componentText: document.getElementById('set-comp-text').value,
         inputBg: document.getElementById('set-input-bg').value,
         inputText: document.getElementById('set-input-text').value,
-        componentBgTransparent: document.getElementById('set-comp-bg-transparent').checked
+        componentBgTransparent: state.design.settings.componentBg === 'transparent'
     };
 
     // Update Canvas BG as well
@@ -1767,8 +1828,9 @@ function setupColorControl(inputId, propName, element, defaultColor = null, onUp
     });
 
     // Set Initial Value
-    if (element.properties && element.properties[propName]) {
-        newItem.value = element.properties[propName];
+    const currentVal = element.properties ? element.properties[propName] : null;
+    if (currentVal && currentVal !== 'transparent' && currentVal.startsWith('#')) {
+        newItem.value = currentVal;
     } else {
         newItem.value = defaultColor || '#000000';
     }
@@ -1877,42 +1939,48 @@ function openTableEditor() {
     const cols = props.cols || 3;
     const cells = props.cells || generateDefaultCells(rows, cols);
 
-    // Create modal
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.innerHTML = `
-        <div class="modal">
+    // Create modal using the unified modal system
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content" style="width: 700px; max-width: 95%;">
             <div class="modal-header">
                 <h3>테이블 셀 편집</h3>
-                <button class="modal-close">&times;</button>
+                <button class="btn-close-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <table class="modal-table" id="cell-editor">
-                    ${cells.map((row, r) => `
-                        <tr>
-                            ${row.map((cell, c) => `
-                                <td>
-                                    <input type="text" value="${escapeHtml(cell)}" data-row="${r}" data-col="${c}" />
-                                </td>
-                            `).join('')}
-                        </tr>
-                    `).join('')}
-                </table>
+                <div class="table-editor-container">
+                    <table class="modal-table" id="cell-editor">
+                        ${cells.map((row, r) => `
+                            <tr>
+                                ${row.map((cell, c) => `
+                                    <td>
+                                        <input type="text" value="${escapeHtml(cell)}" data-row="${r}" data-col="${c}" />
+                                    </td>
+                                `).join('')}
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" id="modal-cancel">취소</button>
-                <button class="toolbar-btn export-btn" id="modal-save">저장</button>
+                <button class="toolbar-btn export-btn" id="modal-save" style="width: 100px; margin-left: 10px;">저장</button>
             </div>
         </div>
     `;
 
-    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
 
     // Event handlers
-    overlay.querySelector('.modal-close').addEventListener('click', () => overlay.remove());
-    overlay.querySelector('#modal-cancel').addEventListener('click', () => overlay.remove());
-    overlay.querySelector('#modal-save').addEventListener('click', () => {
-        const inputs = overlay.querySelectorAll('#cell-editor input');
+    modal.querySelector('.btn-close-modal').addEventListener('click', () => modal.remove());
+    modal.querySelector('#modal-cancel').addEventListener('click', () => modal.remove());
+    modal.querySelector('#modal-save').addEventListener('click', () => {
+        const inputs = modal.querySelectorAll('#cell-editor input');
+
+        // Ensure cells array exists
+        if (!element.properties.cells) element.properties.cells = [];
+
         inputs.forEach(input => {
             const r = parseInt(input.dataset.row);
             const c = parseInt(input.dataset.col);
@@ -1920,11 +1988,11 @@ function openTableEditor() {
             element.properties.cells[r][c] = input.value;
         });
         updateElementDOM(element);
-        overlay.remove();
+        modal.remove();
     });
 
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) overlay.remove();
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
     });
 }
 
@@ -2047,6 +2115,7 @@ function updateCanvasFromState() {
     document.getElementById('canvas-width').value = state.design.canvas.width;
     document.getElementById('canvas-height').value = state.design.canvas.height;
     document.getElementById('canvas-flexible').checked = state.design.canvas.flexible;
+    document.getElementById('canvas-bgcolor').value = state.design.canvas.bgColor || '#2a2a3e';
     updateCanvasSize();
 }
 

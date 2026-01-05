@@ -5,6 +5,7 @@ export namespace main {
 	    height: number;
 	    flexible: boolean;
 	    title: string;
+	    bgColor: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new CanvasConfig(source);
@@ -16,24 +17,7 @@ export namespace main {
 	        this.height = source["height"];
 	        this.flexible = source["flexible"];
 	        this.title = source["title"];
-	    }
-	}
-	export class ElementProperties {
-	    text?: string;
-	    placeholder?: string;
-	    options?: string;
-	    style?: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new ElementProperties(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.text = source["text"];
-	        this.placeholder = source["placeholder"];
-	        this.options = source["options"];
-	        this.style = source["style"];
+	        this.bgColor = source["bgColor"];
 	    }
 	}
 	export class GUIElement {
@@ -45,7 +29,8 @@ export namespace main {
 	    y: number;
 	    width: number;
 	    height: number;
-	    properties: ElementProperties;
+	    zIndex: number;
+	    properties: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
 	        return new GUIElement(source);
@@ -61,29 +46,35 @@ export namespace main {
 	        this.y = source["y"];
 	        this.width = source["width"];
 	        this.height = source["height"];
-	        this.properties = this.convertValues(source["properties"], ElementProperties);
+	        this.zIndex = source["zIndex"];
+	        this.properties = source["properties"];
+	    }
+	}
+	export class ProjectSettings {
+	    windowBg: string;
+	    componentBg: string;
+	    componentText: string;
+	    inputBg: string;
+	    inputText: string;
+	    componentBgTransparent: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProjectSettings(source);
 	    }
 	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.windowBg = source["windowBg"];
+	        this.componentBg = source["componentBg"];
+	        this.componentText = source["componentText"];
+	        this.inputBg = source["inputBg"];
+	        this.inputText = source["inputText"];
+	        this.componentBgTransparent = source["componentBgTransparent"];
+	    }
 	}
 	export class GUIDesign {
 	    canvas: CanvasConfig;
+	    settings: ProjectSettings;
 	    elements: GUIElement[];
 	
 	    static createFrom(source: any = {}) {
@@ -93,6 +84,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.canvas = this.convertValues(source["canvas"], CanvasConfig);
+	        this.settings = this.convertValues(source["settings"], ProjectSettings);
 	        this.elements = this.convertValues(source["elements"], GUIElement);
 	    }
 	
@@ -114,6 +106,7 @@ export namespace main {
 		    return a;
 		}
 	}
+	
 
 }
 
