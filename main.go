@@ -9,10 +9,14 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+//go:embed build/appicon.png
+var appIcon []byte
 
 func main() {
 	// Create an instance of the app structure
@@ -30,6 +34,14 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 30, G: 30, B: 35, A: 1},
 		OnStartup:        app.startup,
+		Menu:             CreateMenu(),
+		Mac: &mac.Options{
+			About: &mac.AboutInfo{
+				Title:   "DKST GUI Designer",
+				Message: "build 20260101\n(C) 2026 DINKI'ssTyle",
+				Icon:    appIcon,
+			},
+		},
 		Bind: []interface{}{
 			app,
 		},
