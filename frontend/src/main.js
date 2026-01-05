@@ -17,7 +17,8 @@ const state = {
             componentText: '#e8e8f0',
             inputBg: '#333344',
             inputText: '#ffffff',
-            componentBgTransparent: false
+            componentBgTransparent: false,
+            customPalette: []
         },
         elements: []
     },
@@ -377,6 +378,10 @@ function applyLoadedDesign(design) {
         // Native mapping
         state.design = design || { canvas: {}, elements: [], settings: {} };
     }
+
+    // 1.5 Ensure settings object structure
+    if (!state.design.settings) state.design.settings = {};
+    if (!state.design.settings.customPalette) state.design.settings.customPalette = [];
 
     // 2. Ensure deep defaults for canvas
     if (!state.design.canvas) state.design.canvas = {};
@@ -2166,6 +2171,7 @@ function setupSettingsEvents() {
 
     safeAdd('btn-close-settings', 'click', closeSettingsModal);
     safeAdd('btn-save-settings', 'click', saveSettings);
+    safeAdd('btn-add-custom-color', 'click', addCustomColor);
 
     const settingsModal = document.getElementById('settings-modal');
     if (settingsModal) {
@@ -2194,6 +2200,7 @@ function openSettingsModal() {
     setupColorControl('set-input-text', 'inputText', { properties: state.design.settings }, '#ffffff');
 
     generatePalette();
+    renderCustomPalette();
     document.getElementById('settings-modal').classList.add('show');
 }
 
@@ -2208,7 +2215,8 @@ function saveSettings() {
         componentText: document.getElementById('set-comp-text').value,
         inputBg: document.getElementById('set-input-bg').value,
         inputText: document.getElementById('set-input-text').value,
-        componentBgTransparent: state.design.settings.componentBg === 'transparent'
+        componentBgTransparent: state.design.settings.componentBg === 'transparent',
+        customPalette: state.design.settings.customPalette || []
     };
 
     // Update Canvas BG as well
@@ -2229,7 +2237,12 @@ function generatePalette() {
 
     const colors = new Set();
 
-    // Add default settings colors
+    // 1. Add custom palette colors first
+    if (state.design.settings?.customPalette) {
+        state.design.settings.customPalette.forEach(c => colors.add(c));
+    }
+
+    // 2. Add default settings colors
     if (state.design.settings) {
         Object.values(state.design.settings).forEach(val => {
             if (typeof val === 'string' && val.startsWith('#')) colors.add(val);
@@ -2242,8 +2255,7 @@ function generatePalette() {
     state.design.elements.forEach(el => {
         if (el.properties) {
             ['bgColor', 'fontColor', 'tabActiveColor', 'tabInactiveColor'].forEach(prop => {
-                if (el.properties[prop] && typeof el.properties[prop] === 'string' && el.properties[prop].startsWith('#')) colors.add(el.properties[prop]); // Simple check
-                else if (el.properties[prop] && typeof el.properties[prop] === 'string' && el.properties[prop].startsWith('#')) colors.add(el.properties[prop]);
+                if (el.properties[prop] && typeof el.properties[prop] === 'string' && el.properties[prop].startsWith('#')) colors.add(el.properties[prop]);
             });
         }
     });
@@ -2261,6 +2273,64 @@ function generatePalette() {
         };
         paletteDiv.appendChild(div);
     });
+
+    renderCustomPalette();
+}
+
+function renderCustomPalette() {
+    const container = document.getElementById('custom-palette');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const palette = state.design.settings.customPalette || [];
+    palette.forEach(color => {
+        const chip = document.createElement('div');
+        chip.className = 'palette-color-item';
+        chip.style.backgroundColor = color;
+        chip.title = `${color} (우클릭하여 삭제)`;
+
+        chip.onclick = () => {
+            navigator.clipboard.writeText(color).then(() => {
+                setStatus('복사됨: ' + color);
+            });
+        };
+
+        chip.oncontextmenu = (e) => {
+            e.preventDefault();
+            removeCustomColor(color);
+        };
+
+        container.appendChild(chip);
+    });
+}
+
+function addCustomColor() {
+    const picker = document.getElementById('custom-color-picker');
+    if (!picker) return;
+    const color = picker.value;
+
+    if (!state.design.settings.customPalette) {
+        state.design.settings.customPalette = [];
+    }
+
+    if (state.design.settings.customPalette.includes(color)) {
+        setStatus('이미 팔레트에 있는 색상입니다.');
+        return;
+    }
+
+    state.design.settings.customPalette.push(color);
+    renderCustomPalette();
+    saveToHistory();
+    setStatus('팔레트에 색상이 추가되었습니다.');
+}
+
+function removeCustomColor(color) {
+    if (!state.design.settings.customPalette) return;
+
+    state.design.settings.customPalette = state.design.settings.customPalette.filter(c => c !== color);
+    renderCustomPalette();
+    saveToHistory();
+    setStatus('팔레트에서 색상이 삭제되었습니다.');
 }
 
 function updateTableSize() {
@@ -3183,7 +3253,13 @@ function setupColorControl(inputId, propertyName, target, defaultValue = '#00000
 
     // Collect used colors
     const colors = new Set();
-    // From settings
+
+    // 1. Add custom palette colors first
+    if (state.design.settings?.customPalette) {
+        state.design.settings.customPalette.forEach(c => colors.add(c));
+    }
+
+    // 2. From settings
     if (state.design.settings) {
         Object.values(state.design.settings).forEach(v => {
             if (typeof v === 'string' && v.startsWith('#')) colors.add(v);
