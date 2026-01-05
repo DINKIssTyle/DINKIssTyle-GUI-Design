@@ -112,7 +112,20 @@ body {
     align-items: center;
     gap: 8px;
     flex: 1;
-    justify-content: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0;
+    /* Hide scrollbar but allow scrolling */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE 10+ */
+}
+
+.toolbar-center::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Edge */
 }
 
 .toolbar-btn {
@@ -128,6 +141,8 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-fast);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .toolbar-btn:hover {
@@ -161,7 +176,49 @@ body {
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
+/* ===== Toolbar Scroll Navigation ===== */
+.toolbar-scroll-wrapper {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
 
+.toolbar-scroll-btn {
+    width: 28px;
+    height: 28px;
+    background: var(--accent-gradient);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 10;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+}
+
+.toolbar-scroll-btn:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.toolbar-scroll-btn.left {
+    margin-right: 4px;
+}
+
+.toolbar-scroll-btn.right {
+    margin-left: 4px;
+}
+
+.toolbar-scroll-btn.visible {
+    display: flex;
+}
 
 .status-text {
     font-size: 12px;

@@ -278,6 +278,44 @@ function setupToolbarEvents() {
     safeAdd('btn-export-xml', 'click', exportXML);
     safeAdd('btn-snap-toggle', 'click', toggleSnap);
     safeAdd('btn-preview-toggle', 'click', togglePreview);
+
+    // Toolbar scroll navigation
+    setupToolbarScroll();
+}
+
+function setupToolbarScroll() {
+    const container = document.getElementById('toolbar-center');
+    const leftBtn = document.getElementById('toolbar-scroll-left');
+    const rightBtn = document.getElementById('toolbar-scroll-right');
+
+    if (!container || !leftBtn || !rightBtn) return;
+
+    const scrollAmount = 150;
+
+    // Scroll button click handlers
+    leftBtn.addEventListener('click', () => {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    });
+
+    rightBtn.addEventListener('click', () => {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    });
+
+    // Update arrow visibility based on scroll position
+    function updateScrollArrows() {
+        const canScrollLeft = container.scrollLeft > 0;
+        const canScrollRight = container.scrollLeft < container.scrollWidth - container.clientWidth - 1;
+
+        leftBtn.classList.toggle('visible', canScrollLeft);
+        rightBtn.classList.toggle('visible', canScrollRight);
+    }
+
+    // Listen to scroll and resize events
+    container.addEventListener('scroll', updateScrollArrows);
+    window.addEventListener('resize', updateScrollArrows);
+
+    // Initial check
+    setTimeout(updateScrollArrows, 100);
 }
 
 async function newDesign() {

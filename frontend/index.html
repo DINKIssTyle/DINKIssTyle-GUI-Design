@@ -19,50 +19,54 @@
             <div class="toolbar-left">
                 <h1 class="logo">DKST GUI Designer</h1>
             </div>
-            <div class="toolbar-center">
-                <button id="btn-new" class="toolbar-btn" title="새로 만들기">
-                    <span class="icon">📄</span>
-                    <span>새로 만들기</span>
-                </button>
-                <button id="btn-save" class="toolbar-btn" title="저장">
-                    <span class="icon">💾</span>
-                    <span>저장</span>
-                </button>
-                <button id="btn-load" class="toolbar-btn" title="불러오기">
-                    <span class="icon">📂</span>
-                    <span>불러오기</span>
-                </button>
-                <div class="toolbar-divider"></div>
-                <button id="btn-undo" class="toolbar-btn" title="실행 취소 (Ctrl+Z)">
-                    <span class="icon">↩️</span>
-                    <span>취소</span>
-                </button>
-                <button id="btn-redo" class="toolbar-btn" title="다시 실행 (Ctrl+Y)">
-                    <span class="icon">↪️</span>
-                    <span>다시</span>
-                </button>
-                <button id="btn-settings" class="toolbar-btn" title="프로젝트 설정">
-                    <span class="icon">⚙️</span>
-                    <span>설정</span>
-                </button>
-                <div class="toolbar-divider"></div>
-                <button id="btn-snap-toggle" class="toolbar-btn active" title="스마트 스냅 (자석)">
-                    <span class="icon">🧲</span>
-                    <span>스냅</span>
-                </button>
-                <button id="btn-preview-toggle" class="toolbar-btn" title="프리뷰 모드">
-                    <span class="icon">👁️</span>
-                    <span>프리뷰</span>
-                </button>
-                <div class="toolbar-divider"></div>
-                <button id="btn-export-json" class="toolbar-btn export-btn" title="JSON으로 내보내기">
-                    <span class="icon">📦</span>
-                    <span>JSON 내보내기</span>
-                </button>
-                <button id="btn-export-xml" class="toolbar-btn export-btn" title="XML로 내보내기">
-                    <span class="icon">📜</span>
-                    <span>XML 내보내기</span>
-                </button>
+            <div class="toolbar-scroll-wrapper">
+                <button id="toolbar-scroll-left" class="toolbar-scroll-btn left" title="왼쪽으로">◀</button>
+                <div class="toolbar-center" id="toolbar-center">
+                    <button id="btn-new" class="toolbar-btn" title="새로 만들기">
+                        <span class="icon">📄</span>
+                        <span>새로 만들기</span>
+                    </button>
+                    <button id="btn-save" class="toolbar-btn" title="저장">
+                        <span class="icon">💾</span>
+                        <span>저장</span>
+                    </button>
+                    <button id="btn-load" class="toolbar-btn" title="불러오기">
+                        <span class="icon">📂</span>
+                        <span>불러오기</span>
+                    </button>
+                    <div class="toolbar-divider"></div>
+                    <button id="btn-undo" class="toolbar-btn" title="실행 취소 (Ctrl+Z)">
+                        <span class="icon">↩️</span>
+                        <span>취소</span>
+                    </button>
+                    <button id="btn-redo" class="toolbar-btn" title="다시 실행 (Ctrl+Y)">
+                        <span class="icon">↪️</span>
+                        <span>다시</span>
+                    </button>
+                    <button id="btn-settings" class="toolbar-btn" title="프로젝트 설정">
+                        <span class="icon">⚙️</span>
+                        <span>설정</span>
+                    </button>
+                    <div class="toolbar-divider"></div>
+                    <button id="btn-snap-toggle" class="toolbar-btn active" title="스마트 스냅 (자석)">
+                        <span class="icon">🧲</span>
+                        <span>스냅</span>
+                    </button>
+                    <button id="btn-preview-toggle" class="toolbar-btn" title="프리뷰 모드">
+                        <span class="icon">👁️</span>
+                        <span>프리뷰</span>
+                    </button>
+                    <div class="toolbar-divider"></div>
+                    <button id="btn-export-json" class="toolbar-btn export-btn" title="JSON으로 내보내기">
+                        <span class="icon">📦</span>
+                        <span>JSON 내보내기</span>
+                    </button>
+                    <button id="btn-export-xml" class="toolbar-btn export-btn" title="XML로 내보내기">
+                        <span class="icon">📜</span>
+                        <span>XML 내보내기</span>
+                    </button>
+                </div>
+                <button id="toolbar-scroll-right" class="toolbar-scroll-btn right" title="오른쪽으로">▶</button>
             </div>
             <div class="toolbar-right">
                 <span id="status-text" class="status-text">준비됨</span>
@@ -434,6 +438,31 @@
                                 <input type="checkbox" id="divider-full-size" />
                                 꽉 채우기 (Full Size)
                             </label>
+                        </div>
+                    </div>
+
+                    <!-- Layer Tools (Single Selection) -->
+                    <div class="layout-tools" style="margin-top: 15px;">
+                        <div class="layout-group">
+                            <div class="layout-group-title">레이어 (Layer)</div>
+                            <div class="layout-btns layer-btns">
+                                <button class="layout-btn layer-btn" data-action="layer-front" title="맨 앞으로 가져오기">
+                                    <span class="icon">⏫</span>
+                                    <span>Front</span>
+                                </button>
+                                <button class="layout-btn layer-btn" data-action="layer-forward" title="앞으로 가져오기">
+                                    <span class="icon">🔼</span>
+                                    <span>Forward</span>
+                                </button>
+                                <button class="layout-btn layer-btn" data-action="layer-backward" title="뒤로 보내기">
+                                    <span class="icon">🔽</span>
+                                    <span>Backward</span>
+                                </button>
+                                <button class="layout-btn layer-btn" data-action="layer-back" title="맨 뒤로 보내기">
+                                    <span class="icon">⏬</span>
+                                    <span>Back</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
