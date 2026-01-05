@@ -1428,7 +1428,6 @@ function setupPropertyEvents() {
     document.getElementById('elem-width').addEventListener('input', updateElementFromInput);
     document.getElementById('elem-height').addEventListener('input', updateElementFromInput);
     document.getElementById('elem-text').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-text-multi').addEventListener('input', updateElementFromInput);
     document.getElementById('elem-style').addEventListener('change', updateElementFromInput);
 
     // Text alignment buttons
@@ -2138,20 +2137,8 @@ function showElementProperties() {
     document.getElementById('elem-width').value = element.width;
     document.getElementById('elem-height').value = element.height;
 
-    // Toggle Text Input / Textarea
-    const isTextarea = element.type === 'textarea';
-    const textInput = document.getElementById('elem-text');
-    const textArea = document.getElementById('elem-text-multi');
-
-    if (isTextarea) {
-        textInput.style.display = 'none';
-        textArea.style.display = 'block';
-        textArea.value = element.properties?.text || '';
-    } else {
-        textInput.style.display = 'block';
-        textArea.style.display = 'none';
-        textInput.value = element.properties?.text || '';
-    }
+    // Use textarea for all text inputs
+    document.getElementById('elem-text').value = element.properties?.text || '';
 
     document.getElementById('elem-style').value = element.properties?.style || 'default';
 
@@ -2288,12 +2275,7 @@ function updateElementFromInput() {
     element.height = parseInt(document.getElementById('elem-height').value) || 40;
     element.properties = element.properties || {};
 
-    const isTextarea = element.type === 'textarea';
-    if (isTextarea) {
-        element.properties.text = document.getElementById('elem-text-multi').value;
-    } else {
-        element.properties.text = document.getElementById('elem-text').value;
-    }
+    element.properties.text = document.getElementById('elem-text').value;
 
     element.properties.style = document.getElementById('elem-style').value;
 

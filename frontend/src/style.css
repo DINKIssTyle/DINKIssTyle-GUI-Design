@@ -399,6 +399,7 @@ body {
     font-size: 13px;
     color: var(--text-primary);
     overflow: hidden;
+    white-space: pre-wrap;
 }
 
 .canvas-element:hover {
