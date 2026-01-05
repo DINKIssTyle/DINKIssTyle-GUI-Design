@@ -46,13 +46,13 @@
                     <span>설정</span>
                 </button>
                 <div class="toolbar-divider"></div>
-                <button id="btn-export-json" class="toolbar-btn export-btn" title="JSON으로 내보내기">
-                    <span class="icon">📤</span>
-                    <span>JSON</span>
+                <button id="btn-snap-toggle" class="toolbar-btn active" title="스마트 스냅 (자석)">
+                    <span class="icon">🧲</span>
+                    <span>스냅</span>
                 </button>
-                <button id="btn-export-xml" class="toolbar-btn export-btn" title="XML로 내보내기">
-                    <span class="icon">📤</span>
-                    <span>XML</span>
+                <button id="btn-preview-toggle" class="toolbar-btn" title="프리뷰 모드">
+                    <span class="icon">👁️</span>
+                    <span>프리뷰</span>
                 </button>
             </div>
             <div class="toolbar-right">
@@ -250,6 +250,12 @@
                             <option value="warning">경고</option>
                             <option value="danger">위험</option>
                         </select>
+                    </div>
+                    <div class="property-row checkbox-row">
+                        <label>
+                            <input type="checkbox" id="elem-locked" />
+                            컴포넌트 잠금 (Lock)
+                        </label>
                     </div>
 
 
@@ -515,6 +521,12 @@
                         <select id="multi-parent">
                             <option value="">(변경 없음)</option>
                         </select>
+                    </div>
+                    <div class="property-row checkbox-row">
+                        <label>
+                            <input type="checkbox" id="multi-locked" />
+                            컴포넌트 잠금 일괄 적용
+                        </label>
                     </div>
                 </div>
 

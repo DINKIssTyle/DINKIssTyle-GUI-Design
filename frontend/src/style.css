@@ -291,12 +291,16 @@ body {
 
 .canvas {
     position: relative;
-    background: var(--bg-canvas);
-    border: 2px dashed var(--border-light);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
-    transition: all var(--transition-normal);
+    background-color: var(--bg-canvas);
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     overflow: hidden;
+    transition: transform 0.1s ease-out;
+    border-radius: var(--border-radius);
+    /* Kept from original .canvas */
 }
 
 .canvas.flexible {
@@ -310,6 +314,21 @@ body {
     border-color: var(--accent-primary);
     border-style: solid;
     box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.canvas.preview-mode {
+    background-image: none !important;
+}
+
+.canvas.preview-mode .alignment-guide,
+.canvas.preview-mode .resize-handle,
+.canvas.preview-mode .selection-box {
+    display: none !important;
+}
+
+.canvas.preview-mode .canvas-element {
+    border: 1px solid transparent !important;
+    outline: none !important;
 }
 
 .canvas-info {
@@ -407,9 +426,21 @@ body {
 }
 
 .canvas-element.selected {
-    border-color: var(--accent-primary);
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    /* Kept from original .canvas-element.selected */
     z-index: 1000 !important;
+}
+
+.canvas-element.locked {
+    cursor: default !important;
+    pointer-events: none;
+    /* Added pointer-events: none for locked elements */
+}
+
+.canvas-element.locked.selected {
+    outline: 2px solid var(--text-secondary);
 }
 
 /* Multi-selection box */

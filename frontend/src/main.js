@@ -9,7 +9,6 @@ const state = {
             height: 600,
             flexible: false,
             title: 'New Design',
-            title: 'New Design',
             bgColor: '#2a2a3e'
         },
         settings: {
@@ -32,6 +31,8 @@ const state = {
     zIndexCounter: 100,
     // Zoom
     zoom: 1.0,
+    snapEnabled: true,
+    isPreviewMode: false,
     // Undo/Redo
     history: [],
     historyIndex: -1,
@@ -146,29 +147,50 @@ function handleKeyDown(e) {
         saveToHistory();
     }
 
-    if (!isMod) return;
-
-    // Shortcuts below require Ctrl/Cmd
     switch (e.key.toLowerCase()) {
-        case 'z':
+        case 'arrowup':
             e.preventDefault();
-            if (e.shiftKey) redo();
-            else undo();
+            moveSelected(0, e.shiftKey ? -5 : -1);
+            break;
+        case 'arrowdown':
+            e.preventDefault();
+            moveSelected(0, e.shiftKey ? 5 : 1);
+            break;
+        case 'arrowleft':
+            e.preventDefault();
+            moveSelected(e.shiftKey ? -5 : -1, 0);
+            break;
+        case 'arrowright':
+            e.preventDefault();
+            moveSelected(e.shiftKey ? 5 : 1, 0);
+            break;
+        case 'z':
+            if (isMod) {
+                e.preventDefault();
+                if (e.shiftKey) redo();
+                else undo();
+            }
             break;
         case 'y':
-            e.preventDefault();
-            redo();
+            if (isMod) {
+                e.preventDefault();
+                redo();
+            }
             break;
         case 's':
-            e.preventDefault();
-            saveDesign();
+            if (isMod) {
+                e.preventDefault();
+                saveDesign();
+            }
             break;
         case 'o':
-            e.preventDefault();
-            loadDesign();
+            if (isMod) {
+                e.preventDefault();
+                loadDesign();
+            }
             break;
         case 'c':
-            if (!typing && state.selectedElements.length > 0) {
+            if (isMod && !typing && state.selectedElements.length > 0) {
                 e.preventDefault();
                 copyElements();
             }
@@ -231,14 +253,21 @@ function pasteElements() {
 
 // ===== Toolbar Events =====
 function setupToolbarEvents() {
-    document.getElementById('btn-new').addEventListener('click', newDesign);
-    document.getElementById('btn-save').addEventListener('click', saveDesign);
-    document.getElementById('btn-load').addEventListener('click', loadDesign);
-    document.getElementById('btn-undo').addEventListener('click', undo);
-    document.getElementById('btn-redo').addEventListener('click', redo);
-    document.getElementById('btn-settings').addEventListener('click', openSettingsModal);
-    document.getElementById('btn-export-json').addEventListener('click', exportJSON);
-    document.getElementById('btn-export-xml').addEventListener('click', exportXML);
+    const safeAdd = (id, event, handler) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener(event, handler);
+    };
+
+    safeAdd('btn-new', 'click', newDesign);
+    safeAdd('btn-save', 'click', saveDesign);
+    safeAdd('btn-load', 'click', loadDesign);
+    safeAdd('btn-undo', 'click', undo);
+    safeAdd('btn-redo', 'click', redo);
+    safeAdd('btn-settings', 'click', openSettingsModal);
+    safeAdd('btn-export-json', 'click', exportJSON);
+    safeAdd('btn-export-xml', 'click', exportXML);
+    safeAdd('btn-snap-toggle', 'click', toggleSnap);
+    safeAdd('btn-preview-toggle', 'click', togglePreview);
 }
 
 async function newDesign() {
@@ -713,10 +742,26 @@ function setupCanvasEvents() {
     dom.canvas.addEventListener('dragleave', handleCanvasDragLeave);
     dom.canvas.addEventListener('drop', handleCanvasDrop);
 
-    // Canvas Mouse events (for selection box)
+    // Canvas Mouse events
     dom.canvas.addEventListener('mousedown', handleCanvasMouseDown);
 
+    // Global click to deselect when clicking outside
+    document.addEventListener('mousedown', (e) => {
+        // If clicking on canvas, toolbar, or properties, don't deselect
+        if (e.target.closest('.canvas-container') ||
+            e.target.closest('.toolbar') ||
+            e.target.closest('.properties-panel') ||
+            e.target.closest('.modal') ||
+            e.target.closest('.toolbox')) {
+            return;
+        }
+        if (state.selectedElements.length > 0) {
+            deselectAll();
+        }
+    });
+
     // Global mouse events for dragging elements or selection box
+    // Note: mouseup on canvas is handled by global mouseup
     document.addEventListener('mousemove', (e) => {
         if (state.isDragging) handleElementDrag(e);
         if (state.isSelecting) handleCanvasMouseMove(e);
@@ -1276,17 +1321,7 @@ function renderSwitchContent(el, element) {
     el.appendChild(label);
 }
 
-function renderDividerContent(el, element) {
-    el.innerHTML = '';
-    const orientation = element.properties.orientation || 'horizontal';
 
-    el.classList.remove('divider-horizontal', 'divider-vertical');
-    el.classList.add('divider-' + orientation);
-
-    const inner = document.createElement('div');
-    inner.className = 'divider-inner';
-    el.appendChild(inner);
-}
 
 function applyFontStyles(el, element) {
     const props = element.properties || {};
@@ -1377,6 +1412,9 @@ function updateElementDOM(element) {
         }
     }
 
+    // Add locked class if needed
+    el.classList.toggle('locked', element.properties?.locked || false);
+
     // Re-render content based on type
     if (element.type === 'table') {
         renderTableContent(el, element);
@@ -1384,6 +1422,8 @@ function updateElementDOM(element) {
         renderTabContent(el, element);
     } else if (element.type === 'switch') {
         renderSwitchContent(el, element);
+    } else if (element.type === 'divider') {
+        renderDividerContent(el, element);
     } else if (containerTypes.includes(element.type)) {
         const label = el.querySelector('.container-label');
         if (label) label.textContent = element.properties?.text || element.type;
@@ -1392,26 +1432,49 @@ function updateElementDOM(element) {
     }
 }
 
+function renderDividerContent(el, element) {
+    el.innerHTML = '';
+    const inner = document.createElement('div');
+    inner.className = 'divider-inner';
+    const orientation = element.properties?.orientation || 'horizontal';
+    const full = element.properties?.fullWidth || false;
+
+    el.dataset.orientation = orientation;
+    if (full) el.classList.add('full-width');
+    else el.classList.remove('full-width');
+
+    el.appendChild(inner);
+}
+
 function handleElementMouseDown(e) {
     if (e.target.classList.contains('resize-handle')) return;
-
-    e.preventDefault();
-    e.stopPropagation();
 
     const el = e.target.closest('.canvas-element');
     if (!el) return;
 
     const id = el.id;
+    const element = getElementData(id);
+    if (!element) return;
+
     const isShift = e.shiftKey;
 
     // If item not selected, select it
     if (!state.selectedElements.includes(id)) {
         selectElement(id, isShift);
     } else if (isShift) {
-        // Toggle off if shift pressed
         deselectElement(id);
         return;
     }
+
+    // Check if any selected element is locked for dragging
+    const anyLocked = state.selectedElements.some(sid => getElementData(sid)?.properties?.locked);
+    if (anyLocked) {
+        // We still allow selection, but no drag
+        return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
 
     // Prepare for multi-drag
     state.isDragging = true;
@@ -1675,6 +1738,11 @@ function removeResizeHandles(el) {
 }
 
 function handleResizeStart(e, position) {
+    if (state.selectedElements.length > 0) {
+        const element = getElementData(state.selectedElements[0]);
+        if (element && element.properties?.locked) return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
 
@@ -1740,6 +1808,10 @@ function handleResizeEnd() {
 
 // ===== Smart Alignment =====
 function snapToGuides(x, y, width, height) {
+    if (!state.snapEnabled) {
+        hideGuides();
+        return { x, y };
+    }
     const threshold = 10;
     const centerX = x + width / 2;
     const centerY = y + height / 2;
@@ -1810,23 +1882,28 @@ function hideGuides() {
 
 // ===== Properties Panel =====
 function setupPropertyEvents() {
+    const safeAdd = (id, event, handler) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener(event, handler);
+    };
+
     // Canvas properties
-    document.getElementById('canvas-title').addEventListener('input', updateCanvasFromInput);
-    document.getElementById('canvas-description').addEventListener('input', updateCanvasFromInput);
-    document.getElementById('canvas-width').addEventListener('input', updateCanvasFromInput);
-    document.getElementById('canvas-height').addEventListener('input', updateCanvasFromInput);
-    document.getElementById('canvas-flexible').addEventListener('change', updateCanvasFromInput);
-    document.getElementById('canvas-bgcolor').addEventListener('input', updateCanvasBgColor);
+    safeAdd('canvas-title', 'input', updateCanvasFromInput);
+    safeAdd('canvas-description', 'input', updateCanvasFromInput);
+    safeAdd('canvas-width', 'input', updateCanvasFromInput);
+    safeAdd('canvas-height', 'input', updateCanvasFromInput);
+    safeAdd('canvas-flexible', 'change', updateCanvasFromInput);
+    safeAdd('canvas-bgcolor', 'input', updateCanvasBgColor);
 
     // Element properties
-    document.getElementById('elem-name').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-description').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-x').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-y').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-width').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-height').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-text').addEventListener('input', updateElementFromInput);
-    document.getElementById('elem-style').addEventListener('change', updateElementFromInput);
+    safeAdd('elem-name', 'input', updateElementFromInput);
+    safeAdd('elem-description', 'input', updateElementFromInput);
+    safeAdd('elem-x', 'input', updateElementFromInput);
+    safeAdd('elem-y', 'input', updateElementFromInput);
+    safeAdd('elem-width', 'input', updateElementFromInput);
+    safeAdd('elem-height', 'input', updateElementFromInput);
+    safeAdd('elem-text', 'input', updateElementFromInput);
+    safeAdd('elem-style', 'change', updateElementFromInput);
 
     // Text alignment buttons
     document.querySelectorAll('.btn-align').forEach(btn => {
@@ -1837,17 +1914,21 @@ function setupPropertyEvents() {
     });
 
     // Font properties
-    document.getElementById('font-size').addEventListener('input', updateFontProperties);
-    document.getElementById('font-color').addEventListener('input', updateFontProperties);
-    document.getElementById('font-family').addEventListener('change', updateFontProperties);
-    document.getElementById('btn-bold').addEventListener('click', toggleBold);
-    document.getElementById('btn-italic').addEventListener('click', toggleItalic);
+    safeAdd('font-size', 'input', updateFontProperties);
+    safeAdd('font-color', 'input', updateFontProperties);
+    safeAdd('font-family', 'change', updateFontProperties);
+    safeAdd('btn-bold', 'click', toggleBold);
+    safeAdd('btn-italic', 'click', toggleItalic);
+    safeAdd('elem-locked', 'change', updateElementFromInput);
+
+    // Multi
+    safeAdd('multi-locked', 'change', updateMultiLocked);
 
     // Background color
-    document.getElementById('elem-bgcolor').addEventListener('input', updateBackgroundColor);
+    safeAdd('elem-bgcolor', 'input', updateBackgroundColor);
 
     // Tab Management & Styling
-    document.getElementById('btn-add-tab').addEventListener('click', addTab);
+    safeAdd('btn-add-tab', 'click', addTab);
 
     // Tab Styling Inputs
     const tabStyleInputs = {
@@ -1860,9 +1941,12 @@ function setupPropertyEvents() {
     };
 
     for (const [id, prop] of Object.entries(tabStyleInputs)) {
-        document.getElementById(id).addEventListener('input', (e) => {
-            updateTabStyle(prop, e.target.value);
-        });
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', (e) => {
+                updateTabStyle(prop, e.target.value);
+            });
+        }
     }
 
     // Tab Bar Alignment Buttons
@@ -1884,32 +1968,40 @@ function setupPropertyEvents() {
     }
 
     // Parent element selector
-    document.getElementById('elem-parent').addEventListener('change', updateElementParent);
+    safeAdd('elem-parent', 'change', updateElementParent);
 
     // Table properties
-    document.getElementById('table-rows').addEventListener('input', updateTableSize);
-    document.getElementById('table-cols').addEventListener('input', updateTableSize);
-    document.getElementById('btn-edit-table').addEventListener('click', openTableEditor);
+    safeAdd('table-rows', 'input', updateTableSize);
+    safeAdd('table-cols', 'input', updateTableSize);
+    safeAdd('btn-edit-table', 'click', openTableEditor);
 
     // Duplicate button
-    document.getElementById('btn-duplicate-element').addEventListener('click', duplicateSelectedElements);
+    safeAdd('btn-duplicate-element', 'click', duplicateSelectedElements);
 
     // Delete button
-    document.getElementById('btn-delete-element').addEventListener('click', deleteSelectedElements);
+    safeAdd('btn-delete-element', 'click', deleteSelectedElements);
 
     // Multi-element properties
-    document.getElementById('multi-style').addEventListener('change', updateMultiStyle);
-    document.getElementById('multi-parent').addEventListener('change', updateMultiParent);
+    safeAdd('multi-style', 'change', updateMultiStyle);
+    safeAdd('multi-parent', 'change', updateMultiParent);
 
     // Divider properties
-    document.getElementById('divider-orientation').addEventListener('change', updateDividerProperties);
-    document.getElementById('divider-full-size').addEventListener('change', updateDividerProperties);
+    safeAdd('divider-orientation', 'change', updateDividerProperties);
+    safeAdd('divider-full-size', 'change', updateDividerProperties);
 }
 
 function setupLayoutEvents() {
     document.querySelectorAll('.layout-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const action = btn.dataset.action;
+
+            // Reorder check: check if any locked
+            const anyLocked = state.selectedElements.some(id => getElementData(id)?.properties?.locked);
+            if (anyLocked && (action.startsWith('layer-') || action.startsWith('align-') || action.startsWith('distribute-'))) {
+                setStatus('잠긴 요소가 포함되어 레이아웃을 변경할 수 없습니다.');
+                return;
+            }
+
             if (action.startsWith('align-')) {
                 alignElements(action.replace('align-', ''));
             } else if (action.startsWith('distribute-')) {
@@ -2067,11 +2159,20 @@ function updateDividerProperties() {
 // ===== Settings / Palette Logic =====
 
 function setupSettingsEvents() {
-    document.getElementById('btn-close-settings').addEventListener('click', closeSettingsModal);
-    document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
-    document.getElementById('settings-modal').addEventListener('click', (e) => {
-        if (e.target.id === 'settings-modal') closeSettingsModal();
-    });
+    const safeAdd = (id, event, handler) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener(event, handler);
+    };
+
+    safeAdd('btn-close-settings', 'click', closeSettingsModal);
+    safeAdd('btn-save-settings', 'click', saveSettings);
+
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target.id === 'settings-modal') closeSettingsModal();
+        });
+    }
 }
 
 function openSettingsModal() {
@@ -2189,157 +2290,6 @@ function updateTableSize() {
     updateElementDOM(element);
 }
 
-function setupColorControl(inputId, propName, element, defaultColor = null, onUpdate = null) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-
-    // We need to clean up the parent container to remove old extras or duplicated elements
-    // Typically structure is: <div class="property-row"> <label>...</label> <input> ... </div>
-    // usage in HTML: <div class="property-row"> <label>...</label> <input type="color"...> </div>
-    // But sometimes it's wrapped differently. Let's rely on parent.
-    const parent = input.parentNode;
-
-    // Check if we already processed this input and wrapped it or added things.
-    // To be safe, let's remove ALL siblings that are not the label.
-    // Actually, simple way: remove specific classes we added.
-    const oldExtras = parent.querySelectorAll('.control-extras');
-    oldExtras.forEach(el => el.remove());
-    // Also remove any stray buttons if we added them directly before (legacy cleanup)
-    const oldButtons = parent.querySelectorAll('button');
-    oldButtons.forEach(btn => {
-        if (btn.textContent.includes('기본값')) btn.remove();
-    });
-
-    // Re-bind input events to the EXISTING input (or replace it to clear listeners)
-    // Replacing is safer to avoid duplicate listeners
-    const newItem = input.cloneNode(true);
-    parent.replaceChild(newItem, input);
-
-    // Bind change event
-    newItem.addEventListener('input', (e) => {
-        const val = e.target.value;
-        if (element.id) {
-            if (!element.properties) element.properties = {};
-            element.properties[propName] = val;
-            updateElementDOM(element);
-        } else if (element.properties) {
-            element.properties[propName] = val;
-            // Trigger specific updates for non-element targets
-            if (inputId === 'canvas-bgcolor' || inputId.startsWith('set-')) {
-                updateCanvasSize();
-                if (inputId.startsWith('set-')) {
-                    // Update all elements to respect potential global setting changes if they don't have overrides
-                    state.design.elements.forEach(el => updateElementDOM(el));
-                }
-            }
-        }
-        if (typeof onUpdate === 'function') onUpdate(val);
-    });
-    newItem.addEventListener('change', () => {
-        saveToHistory();
-    });
-
-    // Set Initial Value
-    const currentVal = element.properties ? element.properties[propName] : null;
-    if (currentVal && currentVal !== 'transparent' && currentVal.startsWith('#')) {
-        newItem.value = currentVal;
-    } else {
-        newItem.value = defaultColor || '#000000';
-    }
-
-    // Create Extras Container
-    const extras = document.createElement('div');
-    extras.className = 'control-extras';
-    extras.style.display = 'flex';
-    extras.style.alignItems = 'center';
-    extras.style.gap = '8px';
-    extras.style.marginTop = '6px';
-    extras.style.width = '100%';
-    parent.appendChild(extras);
-
-    // 1. Default Button
-    const btnDefault = document.createElement('button');
-    btnDefault.textContent = '기본값';
-    btnDefault.className = 'btn-icon-small';
-    btnDefault.style.width = 'auto';
-    btnDefault.style.padding = '3px 8px';
-    btnDefault.style.fontSize = '11px';
-    btnDefault.title = '프로젝트 설정의 기본값을 사용합니다';
-    btnDefault.onclick = () => {
-        const target = element.id ? element.properties : element.properties;
-        if (target) {
-            target[propName] = null; // Reset to null
-            if (element.id) {
-                updateElementDOM(element);
-            } else {
-                updateCanvasSize();
-                state.design.elements.forEach(el => updateElementDOM(el));
-            }
-            saveToHistory();
-            showElementProperties();
-        }
-    };
-    extras.appendChild(btnDefault);
-
-    // 2. None Button (투명/없음)
-    const btnNone = document.createElement('button');
-    btnNone.textContent = '없음';
-    btnNone.className = 'btn-icon-small';
-    btnNone.style.width = 'auto';
-    btnNone.style.padding = '3px 8px';
-    btnNone.style.fontSize = '11px';
-    btnNone.title = '색상을 투명 또는 없음으로 설정합니다';
-    btnNone.onclick = () => {
-        const target = element.id ? element.properties : element.properties;
-        if (target) {
-            target[propName] = 'transparent';
-            if (element.id) {
-                updateElementDOM(element);
-            } else {
-                updateCanvasSize();
-            }
-            saveToHistory();
-            showElementProperties();
-        }
-    };
-    extras.appendChild(btnNone);
-
-    // 2. Palette Container (Mini) - In same row with button
-    const paletteContainer = document.createElement('div');
-    paletteContainer.style.display = 'flex';
-    paletteContainer.style.flexWrap = 'wrap';
-    paletteContainer.style.gap = '4px';
-    paletteContainer.style.flex = '1';
-
-    // Collect Colors
-    const colors = new Set();
-    if (state.design.settings) {
-        Object.values(state.design.settings).forEach(val => {
-            if (typeof val === 'string' && val.startsWith('#')) colors.add(val);
-        });
-    }
-    if (state.design.canvas.bgColor) colors.add(state.design.canvas.bgColor);
-
-    // Render Chips
-    Array.from(colors).slice(0, 10).forEach(color => {
-        const chip = document.createElement('div');
-        chip.style.width = '18px';
-        chip.style.height = '18px';
-        chip.style.backgroundColor = color;
-        chip.style.border = '1px solid #555';
-        chip.style.borderRadius = '3px';
-        chip.style.cursor = 'pointer';
-        chip.title = color;
-        chip.onclick = () => {
-            newItem.value = color;
-            element.properties[propName] = color;
-            updateElementDOM(element);
-            saveToHistory();
-        };
-        paletteContainer.appendChild(chip);
-    });
-    extras.appendChild(paletteContainer);
-}
 
 function openTableEditor() {
     if (state.selectedElements.length !== 1) return;
@@ -2418,7 +2368,10 @@ function escapeHtml(str) {
 
 function updateParentSelector() {
     const select = document.getElementById('elem-parent');
+    if (!select) return; // FIX: Prevent crash if element missing
+
     const currentId = state.selectedElements[0];
+    if (!currentId) return;
 
     // Clear options
     select.innerHTML = '<option value="">(없음 - 윈도우 직속)</option>';
@@ -2528,12 +2481,32 @@ function updateCanvasFromState() {
     document.getElementById('canvas-height').value = state.design.canvas.height;
     document.getElementById('canvas-flexible').checked = state.design.canvas.flexible;
     document.getElementById('canvas-bgcolor').value = state.design.canvas.bgColor || '#2a2a3e';
+
+    // Unified color control for canvas background
+    setupColorControl('canvas-bgcolor', 'bgColor', { properties: state.design.canvas });
+
     updateCanvasSize();
 }
+
+function hideElementProperties() {
+    const canvasProps = document.getElementById('canvas-properties');
+    const elemProps = document.getElementById('element-properties');
+    const multiProps = document.getElementById('multi-properties');
+    const footer = document.getElementById('element-buttons-footer');
+
+    if (canvasProps) canvasProps.style.display = 'block';
+    if (elemProps) elemProps.style.display = 'none';
+    if (multiProps) multiProps.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+
+    updateCanvasFromState();
+}
+
 
 function showElementProperties() {
     if (state.selectedElements.length !== 1) return;
     const element = getElementData(state.selectedElements[0]);
+    if (!element) return;
 
     document.getElementById('canvas-properties').style.display = 'none';
     document.getElementById('element-properties').style.display = 'block';
@@ -2565,6 +2538,9 @@ function showElementProperties() {
 
     // Background color
     setupColorControl('elem-bgcolor', 'bgColor', element);
+
+    // Lock status
+    document.getElementById('elem-locked').checked = element.properties?.locked || false;
 
     // Tab Management & Appearance
     const tabMgmt = document.getElementById('tab-management');
@@ -2737,24 +2713,6 @@ function updateMultiParent(e) {
     setStatus(`${state.selectedElements.length}개 요소 부모 일괄 변경됨`);
 }
 
-function hideElementProperties() {
-    document.getElementById('canvas-properties').style.display = 'block';
-    document.getElementById('element-properties').style.display = 'none';
-    document.getElementById('multi-properties').style.display = 'none';
-
-    const footer = document.getElementById('element-buttons-footer');
-    if (footer) footer.style.display = 'none';
-
-    // Update canvas properties list
-    document.getElementById('canvas-title').value = state.design.canvas.title || '';
-    document.getElementById('canvas-width').value = state.design.canvas.width;
-    document.getElementById('canvas-height').value = state.design.canvas.height;
-    document.getElementById('canvas-flexible').checked = state.design.canvas.flexible || false;
-
-    // Unified color control for canvas background
-    setupColorControl('canvas-bgcolor', 'bgColor', { properties: state.design.canvas });
-}
-
 function updateElementProperties() {
     if (state.selectedElements.length !== 1) return;
     const element = getElementData(state.selectedElements[0]);
@@ -2780,8 +2738,8 @@ function updateElementFromInput() {
     element.properties = element.properties || {};
 
     element.properties.text = document.getElementById('elem-text').value;
-
     element.properties.style = document.getElementById('elem-style').value;
+    element.properties.locked = document.getElementById('elem-locked').checked;
 
     // Update DOM using the centralized function
     updateElementDOM(element);
@@ -2908,7 +2866,7 @@ function restoreFromHistory() {
     if (!snapshot) return;
 
     state.design = JSON.parse(JSON.stringify(snapshot));
-    state.selectedElement = null;
+    state.selectedElements = []; // Unified multi-selection
     clearCanvas();
     renderElementsFromState();
     updateCanvasFromState();
@@ -3076,3 +3034,104 @@ function updateSectionFullWidth() {
     updateElementDOM(element);
     saveToHistory();
 }
+
+// ===== New Utility Functions =====
+
+function toggleSnap() {
+    state.snapEnabled = !state.snapEnabled;
+    const btn = document.getElementById('btn-snap-toggle');
+    if (btn) btn.classList.toggle('active', state.snapEnabled);
+    setStatus(state.snapEnabled ? '스마트 스냅 켜짐' : '스마트 스냅 꺼짐');
+}
+
+function togglePreview() {
+    state.isPreviewMode = !state.isPreviewMode;
+    const btn = document.getElementById('btn-preview-toggle');
+    if (btn) btn.classList.toggle('active', state.isPreviewMode);
+
+    if (dom.canvas) {
+        dom.canvas.classList.toggle('preview-mode', state.isPreviewMode);
+    }
+
+    // Deselect all for better preview if entering
+    if (state.isPreviewMode) deselectAll();
+
+    setStatus(state.isPreviewMode ? '프리뷰 모드' : '편집 모드');
+}
+
+function moveSelected(dx, dy) {
+    if (state.selectedElements.length === 0) return;
+
+    // Check if any locked
+    const anyLocked = state.selectedElements.some(id => getElementData(id)?.properties?.locked);
+    if (anyLocked) {
+        setStatus('잠긴 요소가 포함되어 이동할 수 없습니다.');
+        return;
+    }
+
+    state.selectedElements.forEach(id => {
+        const element = getElementData(id);
+        if (!element) return;
+
+        element.x += dx;
+        element.y += dy;
+
+        const domEl = document.getElementById(id);
+        if (domEl) {
+            domEl.style.left = element.x + 'px';
+            domEl.style.top = element.y + 'px';
+        }
+    });
+
+    // Update properties panel if single selected
+    if (state.selectedElements.length === 1) {
+        updateElementProperties();
+    }
+
+    saveToHistory();
+}
+
+function updateMultiLocked(e) {
+    const locked = e.target.checked;
+    if (state.selectedElements.length === 0) return;
+
+    state.selectedElements.forEach(id => {
+        const element = getElementData(id);
+        if (element) {
+            element.properties = element.properties || {};
+            element.properties.locked = locked;
+            updateElementDOM(element);
+        }
+    });
+
+    saveToHistory();
+    setStatus(`${state.selectedElements.length}개 요소 잠금 상태 변경됨`);
+}
+
+/**
+ * Helper to setup a color input with a property, default button, and used colors palette
+ * @param {string} inputId DOM ID of the color input
+ * @param {string} propertyName Property name in element.properties
+ * @param {object} target Target object (element or state.design.canvas)
+ * @param {string} defaultValue Fallback default color
+ */
+function setupColorControl(inputId, propertyName, target, defaultValue = '#000000') {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    // Use current value or default
+    input.value = target.properties?.[propertyName] || target[propertyName] || defaultValue;
+
+    // Direct input change
+    input.oninput = (e) => {
+        if (target.properties) target.properties[propertyName] = e.target.value;
+        else target[propertyName] = e.target.value;
+
+        if (target.id) updateElementDOM(target);
+        else if (inputId === 'canvas-bgcolor') updateCanvasSize();
+    };
+
+    // Note: We used to have separate buttons for default/palette in some versions,
+    // but now we'll keep the JS logic lean and focus on the input if HTML is minimal.
+}
+
