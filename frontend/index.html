@@ -20,56 +20,58 @@
                 <h1 class="logo">DKST GUI Designer</h1>
             </div>
             <div class="toolbar-scroll-wrapper">
-                <button id="toolbar-scroll-left" class="toolbar-scroll-btn left" title="왼쪽으로">◀</button>
+                <button id="toolbar-scroll-left" class="toolbar-scroll-btn left"
+                    data-i18n-title="toolbar.scrollLeft">◀</button>
                 <div class="toolbar-center" id="toolbar-center">
-                    <button id="btn-new" class="toolbar-btn" title="새로 만들기">
+                    <button id="btn-new" class="toolbar-btn" data-i18n-title="toolbar.new">
                         <span class="icon">📄</span>
-                        <span>새로 만들기</span>
+                        <span data-i18n="toolbar.new">새로 만들기</span>
                     </button>
-                    <button id="btn-save" class="toolbar-btn" title="저장">
+                    <button id="btn-save" class="toolbar-btn" data-i18n-title="toolbar.save">
                         <span class="icon">💾</span>
-                        <span>저장</span>
+                        <span data-i18n="toolbar.save">저장</span>
                     </button>
-                    <button id="btn-load" class="toolbar-btn" title="불러오기">
+                    <button id="btn-load" class="toolbar-btn" data-i18n-title="toolbar.load">
                         <span class="icon">📂</span>
-                        <span>불러오기</span>
+                        <span data-i18n="toolbar.load">불러오기</span>
                     </button>
                     <div class="toolbar-divider"></div>
-                    <button id="btn-undo" class="toolbar-btn" title="실행 취소 (Ctrl+Z)">
+                    <button id="btn-undo" class="toolbar-btn" data-i18n-title="toolbar.undo">
                         <span class="icon">↩️</span>
-                        <span>취소</span>
+                        <span data-i18n="toolbar.undo">취소</span>
                     </button>
-                    <button id="btn-redo" class="toolbar-btn" title="다시 실행 (Ctrl+Y)">
+                    <button id="btn-redo" class="toolbar-btn" data-i18n-title="toolbar.redo">
                         <span class="icon">↪️</span>
-                        <span>다시</span>
+                        <span data-i18n="toolbar.redo">다시</span>
                     </button>
-                    <button id="btn-settings" class="toolbar-btn" title="프로젝트 설정">
+                    <button id="btn-settings" class="toolbar-btn" data-i18n-title="toolbar.settings">
                         <span class="icon">⚙️</span>
-                        <span>설정</span>
+                        <span data-i18n="toolbar.settings">설정</span>
                     </button>
                     <div class="toolbar-divider"></div>
-                    <button id="btn-snap-toggle" class="toolbar-btn active" title="스마트 스냅 (자석)">
+                    <button id="btn-snap-toggle" class="toolbar-btn active" data-i18n-title="toolbar.snap">
                         <span class="icon">🧲</span>
-                        <span>스냅</span>
+                        <span data-i18n="toolbar.snap">스냅</span>
                     </button>
-                    <button id="btn-preview-toggle" class="toolbar-btn" title="프리뷰 모드">
+                    <button id="btn-preview-toggle" class="toolbar-btn" data-i18n-title="toolbar.preview">
                         <span class="icon">👁️</span>
-                        <span>프리뷰</span>
+                        <span data-i18n="toolbar.preview">프리뷰</span>
                     </button>
                     <div class="toolbar-divider"></div>
-                    <button id="btn-export-json" class="toolbar-btn export-btn" title="JSON으로 내보내기">
+                    <button id="btn-export-json" class="toolbar-btn export-btn" data-i18n-title="toolbar.exportJson">
                         <span class="icon">📦</span>
-                        <span>JSON 내보내기</span>
+                        <span data-i18n="toolbar.exportJson">JSON 내보내기</span>
                     </button>
-                    <button id="btn-export-xml" class="toolbar-btn export-btn" title="XML로 내보내기">
+                    <button id="btn-export-xml" class="toolbar-btn export-btn" data-i18n-title="toolbar.exportXml">
                         <span class="icon">📜</span>
-                        <span>XML 내보내기</span>
+                        <span data-i18n="toolbar.exportXml">XML 내보내기</span>
                     </button>
                 </div>
-                <button id="toolbar-scroll-right" class="toolbar-scroll-btn right" title="오른쪽으로">▶</button>
+                <button id="toolbar-scroll-right" class="toolbar-scroll-btn right"
+                    data-i18n-title="toolbar.scrollRight">▶</button>
             </div>
             <div class="toolbar-right">
-                <span id="status-text" class="status-text">준비됨</span>
+                <span id="status-text" class="status-text" data-i18n="toolbar.ready">준비됨</span>
             </div>
         </header>
 
@@ -77,80 +79,80 @@
         <main class="main-content">
             <!-- Component Palette -->
             <aside class="palette">
-                <h2 class="panel-title">컴포넌트</h2>
+                <h2 class="panel-title" data-i18n="palette.components">컴포넌트</h2>
                 <div class="palette-items" id="palette-items">
                     <!-- Layout Group -->
-                    <div class="palette-group-title">레이아웃</div>
+                    <div class="palette-group-title" data-i18n="palette.layout">레이아웃</div>
                     <div class="palette-item" draggable="true" data-type="section">
                         <span class="palette-icon">📦</span>
-                        <span class="palette-label">섹션</span>
+                        <span class="palette-label" data-i18n="comp.section">섹션</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="card">
                         <span class="palette-icon">🃏</span>
-                        <span class="palette-label">카드뷰</span>
+                        <span class="palette-label" data-i18n="comp.card">카드뷰</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="tab">
                         <span class="palette-icon">📑</span>
-                        <span class="palette-label">탭</span>
+                        <span class="palette-label" data-i18n="comp.tab">탭</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="table">
                         <span class="palette-icon">📋</span>
-                        <span class="palette-label">테이블</span>
+                        <span class="palette-label" data-i18n="comp.table">테이블</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="divider">
                         <span class="palette-icon">➖</span>
-                        <span class="palette-label">디바이더</span>
+                        <span class="palette-label" data-i18n="comp.divider">디바이더</span>
                     </div>
 
                     <!-- Input Group -->
-                    <div class="palette-group-title">입력</div>
+                    <div class="palette-group-title" data-i18n="palette.input">입력</div>
                     <div class="palette-item" draggable="true" data-type="button">
                         <span class="palette-icon">⏹️</span>
-                        <span class="palette-label">버튼</span>
+                        <span class="palette-label" data-i18n="comp.button">버튼</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="input">
                         <span class="palette-icon">✏️</span>
-                        <span class="palette-label">입력필드</span>
+                        <span class="palette-label" data-i18n="comp.input">입력필드</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="textarea">
                         <span class="palette-icon">📝</span>
-                        <span class="palette-label">멀티라인</span>
+                        <span class="palette-label" data-i18n="comp.textarea">멀티라인</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="checkbox">
                         <span class="palette-icon">☑️</span>
-                        <span class="palette-label">체크박스</span>
+                        <span class="palette-label" data-i18n="comp.checkbox">체크박스</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="radio">
                         <span class="palette-icon">🔘</span>
-                        <span class="palette-label">라디오</span>
+                        <span class="palette-label" data-i18n="comp.radio">라디오</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="switch">
                         <span class="palette-icon">🔛</span>
-                        <span class="palette-label">스위치</span>
+                        <span class="palette-label" data-i18n="comp.switch">스위치</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="dropdown">
                         <span class="palette-icon">📋</span>
-                        <span class="palette-label">드롭다운</span>
+                        <span class="palette-label" data-i18n="comp.dropdown">드롭다운</span>
                     </div>
 
 
                     <!-- Display Group -->
-                    <div class="palette-group-title">표시</div>
+                    <div class="palette-group-title" data-i18n="palette.display">표시</div>
                     <div class="palette-item" draggable="true" data-type="label">
                         <span class="palette-icon">🏷️</span>
-                        <span class="palette-label">레이블</span>
+                        <span class="palette-label" data-i18n="comp.label">레이블</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="image">
                         <span class="palette-icon">🖼️</span>
-                        <span class="palette-label">이미지</span>
+                        <span class="palette-label" data-i18n="comp.image">이미지</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="slider">
                         <span class="palette-icon">🎚️</span>
-                        <span class="palette-label">슬라이더</span>
+                        <span class="palette-label" data-i18n="comp.slider">슬라이더</span>
                     </div>
                     <div class="palette-item" draggable="true" data-type="progress">
                         <span class="palette-icon">📊</span>
-                        <span class="palette-label">프로그레스</span>
+                        <span class="palette-label" data-i18n="comp.progress">프로그레스</span>
                     </div>
                 </div>
             </aside>
@@ -166,108 +168,113 @@
                     </div>
                 </div>
                 <div class="canvas-info">
-                    <button id="btn-zoom-out" class="zoom-btn" title="축소 (Ctrl+스크롤)">➖</button>
+                    <button id="btn-zoom-out" class="zoom-btn" data-i18n-title="canvas.zoomOut">➖</button>
                     <span id="zoom-level">100%</span>
-                    <button id="btn-zoom-in" class="zoom-btn" title="확대 (Ctrl+스크롤)">➕</button>
-                    <button id="btn-zoom-reset" class="zoom-btn" title="100%로 초기화">🔄</button>
+                    <button id="btn-zoom-in" class="zoom-btn" data-i18n-title="canvas.zoomIn">➕</button>
+                    <button id="btn-zoom-reset" class="zoom-btn" data-i18n-title="canvas.resetZoom">🔄</button>
                     <span id="canvas-size">800 × 600</span>
-                    <span class="canvas-mode" id="canvas-mode">고정 크기</span>
+                    <span class="canvas-mode" id="canvas-mode" data-i18n="canvas.fixedSize">고정 크기</span>
                 </div>
             </section>
 
             <!-- Properties Panel -->
             <aside class="properties-panel">
-                <h2 class="panel-title">속성</h2>
+                <h2 class="panel-title" data-i18n="prop.title">속성</h2>
 
                 <!-- Window Properties -->
                 <div class="property-section" id="canvas-properties">
-                    <h3 class="property-section-title">윈도우 설정</h3>
+                    <h3 class="property-section-title" data-i18n="prop.windowSettings">윈도우 설정</h3>
                     <div class="property-row">
-                        <label>제목</label>
-                        <input type="text" id="canvas-title" placeholder="윈도우 제목" />
+                        <label data-i18n="prop.windowTitle">제목</label>
+                        <input type="text" id="canvas-title" data-i18n-placeholder="prop.windowTitlePlace"
+                            placeholder="윈도우 제목" />
                     </div>
                     <div class="property-row">
-                        <label>설명</label>
-                        <textarea id="canvas-description" placeholder="이 윈도우의 목적과 기능을 설명하세요 (AI 전달용)"></textarea>
+                        <label data-i18n="prop.windowDesc">설명</label>
+                        <textarea id="canvas-description" data-i18n-placeholder="prop.windowDescPlace"
+                            placeholder="이 윈도우의 목적과 기능을 설명하세요 (AI 전달용)"></textarea>
                     </div>
                     <div class="property-row">
-                        <label>너비</label>
+                        <label data-i18n="prop.width">너비</label>
                         <input type="number" id="canvas-width" value="800" min="100" />
                     </div>
                     <div class="property-row">
-                        <label>높이</label>
+                        <label data-i18n="prop.height">높이</label>
                         <input type="number" id="canvas-height" value="600" min="100" />
                     </div>
                     <div class="property-row checkbox-row">
                         <label>
                             <input type="checkbox" id="canvas-flexible" />
-                            플렉시블 크기
+                            <span data-i18n="prop.flexible">플렉시블 크기</span>
                         </label>
                     </div>
                     <div class="property-row">
-                        <label>배경 색상</label>
+                        <label data-i18n="prop.bgColor">배경 색상</label>
                         <input type="color" id="canvas-bgcolor" value="#2a2a3e" />
                     </div>
                 </div>
 
                 <!-- Element Properties -->
                 <div class="property-section" id="element-properties" style="display: none;">
-                    <h3 class="property-section-title">컴포넌트 속성</h3>
+                    <h3 class="property-section-title" data-i18n="prop.compSettings">컴포넌트 속성</h3>
                     <div class="property-row">
-                        <label>이름</label>
-                        <input type="text" id="elem-name" placeholder="컴포넌트 이름" />
+                        <label data-i18n="prop.name">이름</label>
+                        <input type="text" id="elem-name" data-i18n-placeholder="prop.namePlace"
+                            placeholder="컴포넌트 이름" />
                     </div>
                     <div class="property-row">
-                        <label>설명</label>
-                        <textarea id="elem-description" placeholder="컴포넌트에 대한 설명을 입력하세요"></textarea>
+                        <label data-i18n="prop.windowDesc">설명</label>
+                        <textarea id="elem-description" data-i18n-placeholder="prop.descPlace"
+                            placeholder="컴포넌트에 대한 설명을 입력하세요"></textarea>
                     </div>
                     <div class="property-row">
-                        <label>ID</label>
+                        <label data-i18n="prop.id">ID</label>
                         <input type="text" id="elem-id" readonly />
                     </div>
                     <div class="property-row">
-                        <label>타입</label>
+                        <label data-i18n="prop.type">타입</label>
                         <input type="text" id="elem-type" readonly />
                     </div>
                     <div class="property-row-group">
                         <div class="property-row half">
-                            <label>X</label>
+                            <label data-i18n="prop.x">X</label>
                             <input type="number" id="elem-x" />
                         </div>
                         <div class="property-row half">
-                            <label>Y</label>
+                            <label data-i18n="prop.y">Y</label>
                             <input type="number" id="elem-y" />
                         </div>
                     </div>
                     <div class="property-row-group">
                         <div class="property-row half">
-                            <label>너비</label>
+                            <label data-i18n="prop.width">너비</label>
                             <input type="number" id="elem-width" min="20" />
                         </div>
                         <div class="property-row half">
-                            <label>높이</label>
+                            <label data-i18n="prop.height">높이</label>
                             <input type="number" id="elem-height" min="20" />
                         </div>
                     </div>
                     <div class="property-row">
-                        <label>텍스트</label>
-                        <textarea id="elem-text" placeholder="표시할 텍스트" rows="3"></textarea>
+                        <label data-i18n="prop.text">텍스트</label>
+                        <textarea id="elem-text" data-i18n-placeholder="prop.textPlace" placeholder="표시할 텍스트"
+                            rows="3"></textarea>
                     </div>
                     <div class="property-row">
-                        <label>스타일</label>
+                        <label data-i18n="prop.style">스타일</label>
                         <select id="elem-style">
-                            <option value="default">기본</option>
-                            <option value="primary">주요</option>
-                            <option value="secondary">보조</option>
-                            <option value="success">성공</option>
-                            <option value="warning">경고</option>
-                            <option value="danger">위험</option>
+                            <option value="default" data-i18n="style.default">기본</option>
+                            <option value="primary" data-i18n="style.primary">주요</option>
+                            <option value="secondary" data-i18n="style.secondary">보조</option>
+                            <option value="success" data-i18n="style.success">성공</option>
+                            <option value="warning" data-i18n="style.warning">경고</option>
+                            <option value="danger" data-i18n="style.danger">위험</option>
                         </select>
                     </div>
                     <div class="property-row checkbox-row">
                         <label>
                             <input type="checkbox" id="elem-locked" />
-                            컴포넌트 잠금 (Lock)
+                            <span data-i18n="prop.lock">컴포넌트 잠금 (Lock)</span>
                         </label>
                     </div>
 
@@ -275,14 +282,14 @@
 
                     <!-- Font Properties -->
                     <div id="font-properties">
-                        <h4 class="property-section-title">폰트 설정</h4>
+                        <h4 class="property-section-title" data-i18n="prop.fontSettings">폰트 설정</h4>
                         <div class="property-row-group">
                             <div class="property-row half">
-                                <label>크기</label>
+                                <label data-i18n="prop.fontSize">크기</label>
                                 <input type="number" id="font-size" min="8" max="72" value="14" />
                             </div>
                             <div class="property-row half">
-                                <label>서체</label>
+                                <label data-i18n="prop.fontFamily">서체</label>
                                 <select id="font-family">
                                     <option value="sans-serif">Sans</option>
                                     <option value="serif">Serif</option>
@@ -293,172 +300,178 @@
                         <div class="property-row">
                             <div class="btn-group">
                                 <button type="button" class="btn-style-toggle" id="btn-bold"
-                                    title="볼드"><b>B</b></button>
+                                    data-i18n-title="prop.bold"><b>B</b></button>
                                 <button type="button" class="btn-style-toggle" id="btn-italic"
-                                    title="이탤릭"><i>I</i></button>
+                                    data-i18n-title="prop.italic"><i>I</i></button>
                             </div>
                         </div>
                         <div class="property-row">
-                            <label>색상</label>
+                            <label data-i18n="prop.fontColor">색상</label>
                             <input type="color" id="font-color" value="#e8e8f0" />
                         </div>
                     </div>
 
                     <!-- Background Color -->
                     <div class="property-row">
-                        <label>배경 색상</label>
+                        <label data-i18n="prop.bgColor">배경 색상</label>
                         <input type="color" id="elem-bgcolor" value="#1e1e32" />
                     </div>
 
                     <!-- Tab Colors (shown only for tabs) -->
                     <!-- Tab Management (shown only for tabs) -->
                     <div id="tab-management" style="display: none;">
-                        <h4 class="property-section-title">탭 관리</h4>
+                        <h4 class="property-section-title" data-i18n="prop.tabManagement">탭 관리</h4>
                         <div id="tab-list-container" class="tab-list-container">
                             <!-- JS will populate this -->
                         </div>
                         <button type="button" id="btn-add-tab" class="btn-full"
-                            style="margin-top: 8px; width: 100%; padding: 6px;">＋ 탭 추가</button>
+                            style="margin-top: 8px; width: 100%; padding: 6px;" data-i18n="prop.addTab">＋ 탭 추가</button>
                     </div>
 
                     <!-- Tab Appearance (shown only for tabs) -->
                     <div id="tab-appearance" style="display: none;">
-                        <h4 class="property-section-title">탭 스타일</h4>
+                        <h4 class="property-section-title" data-i18n="prop.tabStyle">탭 스타일</h4>
 
                         <!-- Tab Bar Alignment -->
                         <div class="property-row">
-                            <label>탭바 정렬</label>
+                            <label data-i18n="prop.tabAlign">탭바 정렬</label>
                             <div class="btn-group">
                                 <button type="button" class="tab-align" data-align="left" id="tab-align-left"
-                                    title="왼쪽">◀</button>
+                                    data-i18n-title="align.left">◀</button>
                                 <button type="button" class="tab-align" data-align="center" id="tab-align-center"
-                                    title="가운데">●</button>
+                                    data-i18n-title="align.center">●</button>
                                 <button type="button" class="tab-align" data-align="right" id="tab-align-right"
-                                    title="오른쪽">▶</button>
+                                    data-i18n-title="align.right">▶</button>
                                 <button type="button" class="tab-align" data-align="stretch" id="tab-align-stretch"
-                                    title="채우기">↔</button>
+                                    data-i18n-title="align.stretch">↔</button>
                             </div>
                         </div>
 
-                        <div class="property-label-small" style="font-size: 11px; color: #888; margin-top: 8px;">활성
+                        <div class="property-label-small" style="font-size: 11px; color: #888; margin-top: 8px;"
+                            data-i18n="prop.tabActive">활성
                             탭
                         </div>
                         <div class="property-row">
-                            <label>배경</label>
+                            <label data-i18n="prop.bg">배경</label>
                             <input type="color" id="tab-active-bg" value="#667eea" />
                         </div>
                         <div class="property-row-group">
                             <div class="property-row half">
-                                <label>글자색</label>
+                                <label data-i18n="prop.textColor">글자색</label>
                                 <input type="color" id="tab-active-font-color" value="#ffffff" />
                             </div>
                             <div class="property-row half">
-                                <label>크기</label>
+                                <label data-i18n="prop.fontSize">크기</label>
                                 <input type="number" id="tab-active-font-size" value="13" min="8" />
                             </div>
                         </div>
 
-                        <div class="property-label-small" style="font-size: 11px; color: #888; margin-top: 8px;">비활성
+                        <div class="property-label-small" style="font-size: 11px; color: #888; margin-top: 8px;"
+                            data-i18n="prop.tabInactive">비활성
                             탭
                         </div>
                         <div class="property-row">
-                            <label>배경</label>
+                            <label data-i18n="prop.bg">배경</label>
                             <input type="color" id="tab-inactive-bg" value="#16213e" />
                         </div>
                         <div class="property-row-group">
                             <div class="property-row half">
-                                <label>글자색</label>
+                                <label data-i18n="prop.textColor">글자색</label>
                                 <input type="color" id="tab-inactive-font-color" value="#cccccc" />
                             </div>
                             <div class="property-row half">
-                                <label>크기</label>
+                                <label data-i18n="prop.fontSize">크기</label>
                                 <input type="number" id="tab-inactive-font-size" value="13" min="8" />
                             </div>
                         </div>
                     </div>
                     <div class="property-row">
-                        <label>텍스트 정렬</label>
+                        <label data-i18n="prop.textAlign">텍스트 정렬</label>
                         <div class="btn-group">
                             <button type="button" class="btn-align" data-align="left" id="align-left"
-                                title="왼쪽">◀</button>
+                                data-i18n-title="align.left">◀</button>
                             <button type="button" class="btn-align" data-align="center" id="align-center"
-                                title="가운데">●</button>
+                                data-i18n-title="align.center">●</button>
                             <button type="button" class="btn-align" data-align="right" id="align-right"
-                                title="오른쪽">▶</button>
+                                data-i18n-title="align.right">▶</button>
                         </div>
                     </div>
                     <div class="property-row">
-                        <label>부모 컴포넌트</label>
+                        <label data-i18n="prop.parentComp">부모 컴포넌트</label>
                         <select id="elem-parent">
-                            <option value="">(없음 - 윈도우 직속)</option>
+                            <option value="" data-i18n="prop.noParent">(없음 - 윈도우 직속)</option>
                         </select>
                     </div>
 
                     <!-- Section Properties -->
                     <div id="section-properties" style="display: none;">
-                        <h4 class="property-section-title">섹션 설정</h4>
+                        <h4 class="property-section-title" data-i18n="prop.sectionSettings">섹션 설정</h4>
                         <div class="property-row checkbox-row">
                             <label>
                                 <input type="checkbox" id="section-full-width" />
-                                전체 너비 채우기
+                                <span data-i18n="prop.fullWidth">전체 너비 채우기</span>
                             </label>
                         </div>
                     </div>
 
                     <!-- Table Properties -->
                     <div id="table-properties" style="display: none;">
-                        <h4 class="property-section-title">테이블 설정</h4>
+                        <h4 class="property-section-title" data-i18n="prop.tableSettings">테이블 설정</h4>
                         <div class="property-row-group">
                             <div class="property-row half">
-                                <label>행</label>
+                                <label data-i18n="prop.rows">행</label>
                                 <input type="number" id="table-rows" min="1" value="3" />
                             </div>
                             <div class="property-row half">
-                                <label>열</label>
+                                <label data-i18n="prop.cols">열</label>
                                 <input type="number" id="table-cols" min="1" value="3" />
                             </div>
                         </div>
                         <div class="property-row">
-                            <button id="btn-edit-table" class="btn-secondary">셀 내용 편집</button>
+                            <button id="btn-edit-table" class="btn-secondary" data-i18n="prop.editCells">셀 내용
+                                편집</button>
                         </div>
                     </div>
 
                     <!-- Divider Properties -->
                     <div id="divider-properties" style="display: none;">
-                        <h4 class="property-section-title">디바이더 설정</h4>
+                        <h4 class="property-section-title" data-i18n="prop.dividerSettings">디바이더 설정</h4>
                         <div class="property-row">
-                            <label>방향</label>
+                            <label data-i18n="prop.orientation">방향</label>
                             <select id="divider-orientation">
-                                <option value="horizontal">가로 (Horizontal)</option>
-                                <option value="vertical">세로 (Vertical)</option>
+                                <option value="horizontal" data-i18n="orientation.horizontal">가로 (Horizontal)</option>
+                                <option value="vertical" data-i18n="orientation.vertical">세로 (Vertical)</option>
                             </select>
                         </div>
                         <div class="property-row checkbox-row">
                             <label>
                                 <input type="checkbox" id="divider-full-size" />
-                                꽉 채우기 (Full Size)
+                                <span data-i18n="prop.fullSize">꽉 채우기 (Full Size)</span>
                             </label>
                         </div>
                     </div>
 
-                    <!-- Layer Tools (Single Selection) -->
                     <div class="layout-tools" style="margin-top: 15px;">
                         <div class="layout-group">
-                            <div class="layout-group-title">레이어 (Layer)</div>
+                            <div class="layout-group-title" data-i18n="prop.layer">레이어 (Layer)</div>
                             <div class="layout-btns layer-btns">
-                                <button class="layout-btn layer-btn" data-action="layer-front" title="맨 앞으로 가져오기">
+                                <button class="layout-btn layer-btn" data-action="layer-front"
+                                    data-i18n-title="layer.front">
                                     <span class="icon">⏫</span>
                                     <span>Front</span>
                                 </button>
-                                <button class="layout-btn layer-btn" data-action="layer-forward" title="앞으로 가져오기">
+                                <button class="layout-btn layer-btn" data-action="layer-forward"
+                                    data-i18n-title="layer.forward">
                                     <span class="icon">🔼</span>
                                     <span>Forward</span>
                                 </button>
-                                <button class="layout-btn layer-btn" data-action="layer-backward" title="뒤로 보내기">
+                                <button class="layout-btn layer-btn" data-action="layer-backward"
+                                    data-i18n-title="layer.backward">
                                     <span class="icon">🔽</span>
                                     <span>Backward</span>
                                 </button>
-                                <button class="layout-btn layer-btn" data-action="layer-back" title="맨 뒤로 보내기">
+                                <button class="layout-btn layer-btn" data-action="layer-back"
+                                    data-i18n-title="layer.back">
                                     <span class="icon">⏬</span>
                                     <span>Back</span>
                                 </button>
@@ -470,34 +483,35 @@
 
                 <!-- Multi-Element Properties -->
                 <div class="property-section" id="multi-properties" style="display: none;">
-                    <h3 class="property-section-title">다중 선택 속성 (<span id="multi-count">0</span>)</h3>
+                    <h3 class="property-section-title"><span data-i18n="prop.multiSettings">다중 선택 속성</span> (<span
+                            id="multi-count">0</span>)</h3>
 
                     <!-- Layout Tools (Moved here) -->
                     <div class="layout-tools" style="margin-top: 5px; margin-bottom: 20px;">
                         <div class="layout-group">
-                            <div class="layout-group-title">정렬 (Align)</div>
+                            <div class="layout-group-title" data-i18n="prop.align">정렬 (Align)</div>
                             <div class="layout-btns">
-                                <button class="layout-btn" data-action="align-left" title="왼쪽 정렬">
+                                <button class="layout-btn" data-action="align-left" data-i18n-title="align.left">
                                     <span class="icon">⇤</span>
                                     <span>Left</span>
                                 </button>
-                                <button class="layout-btn" data-action="align-center" title="가로 중앙 정렬">
+                                <button class="layout-btn" data-action="align-center" data-i18n-title="align.center">
                                     <span class="icon">⬌</span>
                                     <span>Center</span>
                                 </button>
-                                <button class="layout-btn" data-action="align-right" title="오른쪽 정렬">
+                                <button class="layout-btn" data-action="align-right" data-i18n-title="align.right">
                                     <span class="icon">⇥</span>
                                     <span>Right</span>
                                 </button>
-                                <button class="layout-btn" data-action="align-top" title="위쪽 정렬">
+                                <button class="layout-btn" data-action="align-top" data-i18n-title="align.top">
                                     <span class="icon">⤒</span>
                                     <span>Top</span>
                                 </button>
-                                <button class="layout-btn" data-action="align-middle" title="세로 중앙 정렬">
+                                <button class="layout-btn" data-action="align-middle" data-i18n-title="align.middle">
                                     <span class="icon">⬍</span>
                                     <span>Middle</span>
                                 </button>
-                                <button class="layout-btn" data-action="align-bottom" title="아래쪽 정렬">
+                                <button class="layout-btn" data-action="align-bottom" data-i18n-title="align.bottom">
                                     <span class="icon">⤓</span>
                                     <span>Bottom</span>
                                 </button>
@@ -505,13 +519,13 @@
                         </div>
 
                         <div class="layout-group">
-                            <div class="layout-group-title">분포 (Distribute)</div>
+                            <div class="layout-group-title" data-i18n="prop.distribute">분포 (Distribute)</div>
                             <div class="layout-btns distribute-btns">
-                                <button class="layout-btn" data-action="distribute-h" title="가로 간격 동일하게">
+                                <button class="layout-btn" data-action="distribute-h" data-i18n-title="dist.horiz">
                                     <span class="icon">↔</span>
                                     <span>Horizontal</span>
                                 </button>
-                                <button class="layout-btn" data-action="distribute-v" title="세로 간격 동일하게">
+                                <button class="layout-btn" data-action="distribute-v" data-i18n-title="dist.vert">
                                     <span class="icon">↕</span>
                                     <span>Vertical</span>
                                 </button>
@@ -519,21 +533,25 @@
                         </div>
 
                         <div class="layout-group">
-                            <div class="layout-group-title">레이어 (Layer)</div>
+                            <div class="layout-group-title" data-i18n="prop.layer">레이어 (Layer)</div>
                             <div class="layout-btns layer-btns">
-                                <button class="layout-btn layer-btn" data-action="layer-front" title="맨 앞으로 가져오기">
+                                <button class="layout-btn layer-btn" data-action="layer-front"
+                                    data-i18n-title="layer.front">
                                     <span class="icon">⏫</span>
                                     <span>Front</span>
                                 </button>
-                                <button class="layout-btn layer-btn" data-action="layer-forward" title="앞으로 가져오기">
+                                <button class="layout-btn layer-btn" data-action="layer-forward"
+                                    data-i18n-title="layer.forward">
                                     <span class="icon">🔼</span>
                                     <span>Forward</span>
                                 </button>
-                                <button class="layout-btn layer-btn" data-action="layer-backward" title="뒤로 보내기">
+                                <button class="layout-btn layer-btn" data-action="layer-backward"
+                                    data-i18n-title="layer.backward">
                                     <span class="icon">🔽</span>
                                     <span>Backward</span>
                                 </button>
-                                <button class="layout-btn layer-btn" data-action="layer-back" title="맨 뒤로 보내기">
+                                <button class="layout-btn layer-btn" data-action="layer-back"
+                                    data-i18n-title="layer.back">
                                     <span class="icon">⏬</span>
                                     <span>Back</span>
                                 </button>
@@ -541,29 +559,29 @@
                         </div>
                     </div>
 
-                    <h4 class="property-section-title">일괄 변경</h4>
+                    <h4 class="property-section-title" data-i18n="prop.batchChange">일괄 변경</h4>
                     <div class="property-row">
-                        <label>공통 스타일</label>
+                        <label data-i18n="prop.commonStyle">공통 스타일</label>
                         <select id="multi-style">
-                            <option value="">(변경 없음)</option>
-                            <option value="default">기본</option>
-                            <option value="primary">주요</option>
-                            <option value="secondary">보조</option>
-                            <option value="success">성공</option>
-                            <option value="warning">경고</option>
-                            <option value="danger">위험</option>
+                            <option value="" data-i18n="prop.noChange">(변경 없음)</option>
+                            <option value="default" data-i18n="style.default">기본</option>
+                            <option value="primary" data-i18n="style.primary">주요</option>
+                            <option value="secondary" data-i18n="style.secondary">보조</option>
+                            <option value="success" data-i18n="style.success">성공</option>
+                            <option value="warning" data-i18n="style.warning">경고</option>
+                            <option value="danger" data-i18n="style.danger">위험</option>
                         </select>
                     </div>
                     <div class="property-row">
-                        <label>공통 부모</label>
+                        <label data-i18n="prop.commonParent">공통 부모</label>
                         <select id="multi-parent">
-                            <option value="">(변경 없음)</option>
+                            <option value="" data-i18n="prop.noChange">(변경 없음)</option>
                         </select>
                     </div>
                     <div class="property-row checkbox-row">
                         <label>
                             <input type="checkbox" id="multi-locked" />
-                            컴포넌트 잠금 일괄 적용
+                            <span data-i18n="prop.batchLock">컴포넌트 잠금 일괄 적용</span>
                         </label>
                     </div>
                 </div>
@@ -572,10 +590,11 @@
                 <div id="element-buttons-footer" class="property-section"
                     style="display: none; border-top: 1px solid var(--border-color); margin-top: auto;">
                     <div class="property-row">
-                        <button id="btn-duplicate-element" class="btn-secondary">컴포넌트 복제 (Ctrl+D)</button>
+                        <button id="btn-duplicate-element" class="btn-secondary" data-i18n="btn.duplicate">컴포넌트 복제
+                            (Ctrl+D)</button>
                     </div>
                     <div class="property-row" style="margin-bottom: 0;">
-                        <button id="btn-delete-element" class="btn-delete">컴포넌트 삭제</button>
+                        <button id="btn-delete-element" class="btn-delete" data-i18n="btn.delete">컴포넌트 삭제</button>
                     </div>
                 </div>
             </aside>
@@ -587,44 +606,54 @@
     <div id="settings-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>프로젝트 설정</h3>
+                <h3 data-i18n="settings.title">프로젝트 설정</h3>
                 <button class="btn-close-modal" id="btn-close-settings">✖</button>
             </div>
             <div class="modal-body">
                 <div class="settings-section">
-                    <h4>기본 색상 (Default Colors)</h4>
+                    <h4 data-i18n="settings.language">언어 (Language)</h4>
+                    <select id="language-select"
+                        style="width: 100%; padding: 8px; background-color: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <option value="ko">한국어 (Korean)</option>
+                        <option value="en">English (US)</option>
+                    </select>
+                </div>
+
+                <div class="settings-section">
+                    <h4 data-i18n="settings.defaultColors">기본 색상 (Default Colors)</h4>
                     <div class="color-grid">
                         <div class="color-control">
-                            <label>윈도우 배경</label>
+                            <label data-i18n="settings.windowBg">윈도우 배경</label>
                             <input type="color" id="set-window-bg" value="#2a2a3e">
                         </div>
                         <div class="color-control">
-                            <label>컴포넌트 텍스트</label>
+                            <label data-i18n="settings.compText">컴포넌트 텍스트</label>
                             <input type="color" id="set-comp-text" value="#e8e8f0">
                         </div>
                         <div class="color-control">
-                            <label>컴포넌트 배경</label>
+                            <label data-i18n="settings.compBg">컴포넌트 배경</label>
                             <input type="color" id="set-comp-bg" value="#ffffff">
                         </div>
                         <div class="color-control">
-                            <label>입력/버튼 배경</label>
+                            <label data-i18n="settings.inputBg">입력/버튼 배경</label>
                             <input type="color" id="set-input-bg" value="#333344">
                         </div>
                         <div class="color-control">
-                            <label>입력/버튼 텍스트</label>
+                            <label data-i18n="settings.inputText">입력/버튼 텍스트</label>
                             <input type="color" id="set-input-text" value="#ffffff">
                         </div>
                     </div>
                 </div>
 
                 <div class="settings-section">
-                    <h4>나만의 팔레트 (Custom Palette)</h4>
-                    <p class="section-desc">자주 사용하는 색상을 추가하여 저장할 수 있습니다. (우클릭 시 삭제)</p>
+                    <h4 data-i18n="settings.customPalette">나만의 팔레트 (Custom Palette)</h4>
+                    <p class="section-desc" data-i18n="settings.customDesc">자주 사용하는 색상을 추가하여 저장할 수 있습니다. (우클릭 시 삭제)</p>
                     <div class="color-add-row"
                         style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center;">
                         <input type="color" id="custom-color-picker" value="#667eea"
                             style="width: 50px; height: 36px; padding: 2px;">
-                        <button id="btn-add-custom-color" class="btn-secondary" style="margin: 0; flex: 1;">팔레트에
+                        <button id="btn-add-custom-color" class="btn-secondary" style="margin: 0; flex: 1;"
+                            data-i18n="settings.addToPalette">팔레트에
                             추가</button>
                     </div>
                     <div id="custom-palette" class="palette-grid">
@@ -633,15 +662,15 @@
                 </div>
 
                 <div class="settings-section">
-                    <h4>사용된 색상 (Used Palette)</h4>
-                    <p class="section-desc">현재 프로젝트에서 사용 중인 색상입니다. 클릭하여 복사하세요.</p>
+                    <h4 data-i18n="settings.usedPalette">사용된 색상 (Used Palette)</h4>
+                    <p class="section-desc" data-i18n="settings.usedDesc">현재 프로젝트에서 사용 중인 색상입니다. 클릭하여 복사하세요.</p>
                     <div id="project-palette" class="palette-grid">
                         <!-- Colors will be injected via JS -->
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="btn-save-settings" class="btn-primary">설정 저장</button>
+                <button id="btn-save-settings" class="btn-primary" data-i18n="settings.save">설정 저장</button>
             </div>
         </div>
     </div>

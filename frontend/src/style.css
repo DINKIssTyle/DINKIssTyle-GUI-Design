@@ -531,6 +531,46 @@ body {
     border: 1px dashed var(--border-light);
 }
 
+.canvas-element input,
+.canvas-element select,
+.canvas-element .radio-group,
+.canvas-element .checkbox-group {
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    box-sizing: border-box;
+}
+
+.checkbox-group,
+.radio-group {
+    display: flex;
+    align-items: center;
+    gap: 8px !important;
+    /* Force gap */
+    justify-content: center;
+}
+
+.canvas-element.align-left .checkbox-group,
+.canvas-element.align-left .radio-group {
+    justify-content: flex-start;
+}
+
+.canvas-element.align-right .checkbox-group,
+.canvas-element.align-right .radio-group {
+    justify-content: flex-end;
+}
+
+.checkbox-group input,
+.radio-group input {
+    width: auto;
+    height: auto;
+    margin: 0;
+    pointer-events: none;
+}
+
 .canvas-element[data-type="input"] {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
@@ -1165,7 +1205,7 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .tab-item.active {
-    background: var(--bg-panel);
+    background: transparent;
     border-bottom: 1px solid var(--bg-panel);
     color: var(--text-primary);
     font-weight: 600;
@@ -1179,7 +1219,7 @@ input[type="color"]::-webkit-color-swatch {
 .tab-body {
     flex: 1;
     width: 100%;
-    background: var(--bg-panel);
+    background: transparent;
     border: 1px solid var(--border-color);
     border-top: none;
     padding: 10px;

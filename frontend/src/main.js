@@ -1,6 +1,8 @@
 // Created by DINKIssTyle on 2026.
 // Copyright (C) 2026 DINKI'ssTyle. All rights reserved.
 
+import { initI18n, t, changeLanguage, getCurrentLanguage, updateTranslations } from './i18n.js';
+
 // ===== State Management =====
 const state = {
     design: {
@@ -54,35 +56,41 @@ const dom = {
 };
 
 // ===== Component Definitions =====
-const componentDefaults = {
-    button: { width: 100, height: 36, text: '버튼' },
-    label: { width: 80, height: 24, text: '레이블' },
-    input: { width: 200, height: 36, text: '입력...' },
-    textarea: { width: 200, height: 100, text: '멀티라인\n텍스트 입력...' },
-    dropdown: { width: 150, height: 36, text: '선택하세요' },
-    checkbox: { width: 120, height: 24, text: '☐ 체크박스' },
-    radio: { width: 120, height: 24, text: '○ 라디오' },
-    switch: { width: 100, height: 30, text: '스위치', switchOn: false },
-    tab: {
-        width: 400,
-        height: 300,
-        text: '',
-        tabs: [
-            { id: 't1', label: '탭1' },
-            { id: 't2', label: '탭2' },
-            { id: 't3', label: '탭3' }
-        ],
-        activeTab: 0,
-        isContainer: true
-    },
-    table: { width: 250, height: 120, text: '', rows: 3, cols: 3 },
-    section: { width: 250, height: 180, text: '섹션', isContainer: true },
-    card: { width: 200, height: 150, text: '카드', isContainer: true },
-    image: { width: 150, height: 100, text: '🖼️ 이미지' },
-    slider: { width: 200, height: 20, text: '━━━━●━━━━' },
-    progress: { width: 200, height: 20, text: '▓▓▓▓▓░░░░░ 50%' },
-    divider: { width: 200, height: 10, text: '' }
-};
+// ===== Component Definitions =====
+function getComponentDefaults() {
+    return {
+        button: { width: 100, height: 36, text: t('comp.button') },
+        label: { width: 80, height: 24, text: t('comp.label') },
+        input: { width: 200, height: 36, text: t('comp.input') },
+        textarea: { width: 200, height: 100, text: t('comp.textarea') },
+        dropdown: { width: 150, height: 36, text: t('comp.dropdown') },
+        checkbox: { width: 120, height: 24, text: t('comp.checkbox') },
+        radio: { width: 120, height: 24, text: t('comp.radio') },
+        switch: { width: 100, height: 30, text: t('comp.switch'), switchOn: false },
+        tab: {
+            width: 400,
+            height: 300,
+            text: '',
+            tabs: [
+                { id: 't1', label: `${t('comp.tabLabel')}1` },
+                { id: 't2', label: `${t('comp.tabLabel')}2` },
+                { id: 't3', label: `${t('comp.tabLabel')}3` }
+            ],
+            activeTab: 0,
+            isContainer: true
+        },
+        table: {
+            width: 250, height: 120, text: '', rows: 3, cols: 3,
+            colLabel: t('comp.colLabel'), rowLabel: t('comp.rowLabel'), cellLabel: t('comp.cell')
+        },
+        section: { width: 250, height: 180, text: t('comp.section'), isContainer: true },
+        card: { width: 200, height: 150, text: t('comp.card'), isContainer: true },
+        image: { width: 150, height: 100, text: t('comp.image') },
+        slider: { width: 200, height: 20, text: t('comp.slider') },
+        progress: { width: 200, height: 20, text: t('comp.progress') },
+        divider: { width: 200, height: 10, text: t('comp.divider') }
+    };
+}
 
 // Container types that can have children
 const containerTypes = ['section', 'card', 'tab'];
@@ -93,6 +101,11 @@ document.addEventListener('DOMContentLoaded', init);
 function init() {
     // Cache DOM elements
     dom.canvas = document.getElementById('canvas');
+
+    // Load language setting
+    const savedSettings = JSON.parse(localStorage.getItem('designSettings') || '{}');
+    initI18n(savedSettings.language || 'ko');
+
     dom.guideH = document.getElementById('guide-h');
     dom.guideV = document.getElementById('guide-v');
     dom.statusText = document.getElementById('status-text');
@@ -115,6 +128,7 @@ function init() {
     setupZoomEvents();
     setupSettingsEvents();
     setupLayoutEvents();
+    setupLanguageEvents();
 
     saveToHistory(); // Record initial blank state (Index 0)
 
@@ -124,7 +138,9 @@ function init() {
     // Initialize history
     updateUndoRedoButtons();
 
-    setStatus('준비됨');
+    updateUndoRedoButtons();
+
+    setStatus(t('msg.ready'));
 }
 
 function isInputActive() {
@@ -228,7 +244,7 @@ function copyElements() {
 
     const elements = state.selectedElements.map(id => getElementData(id)).filter(el => el);
     state.clipboard = JSON.parse(JSON.stringify(elements));
-    setStatus(`${elements.length}개 요소 복사됨`);
+    setStatus(t('msg.copied', { count: elements.length }));
 }
 
 function pasteElements() {
@@ -253,7 +269,10 @@ function pasteElements() {
     deselectAll();
     newIds.forEach(id => selectElement(id, true));
 
-    setStatus(`${state.clipboard.length}개 요소 붙여넣기됨`);
+    deselectAll();
+    newIds.forEach(id => selectElement(id, true));
+
+    setStatus(t('msg.pasted', { count: state.clipboard.length }));
     saveToHistory();
 }
 
@@ -326,16 +345,16 @@ async function newDesign() {
         if (window.go?.main?.App?.ShowConfirmDialog) {
             try {
                 confirmed = await window.go.main.App.ShowConfirmDialog(
-                    '새로 만들기',
-                    '현재 디자인을 버리고 새로 시작하시겠습니까?'
+                    t('dialog.newDesignTitle'),
+                    t('dialog.newDesign')
                 );
             } catch (e) {
                 console.error('Native dialog failed, falling back to confirm():', e);
-                confirmed = confirm('현재 디자인을 버리고 새로 시작하시겠습니까?');
+                confirmed = confirm(t('dialog.newDesign'));
             }
         } else {
             // Browser fallback
-            confirmed = confirm('현재 디자인을 버리고 새로 시작하시겠습니까?');
+            confirmed = confirm(t('dialog.newDesign'));
         }
         if (!confirmed) return;
     }
@@ -371,7 +390,9 @@ async function newDesign() {
 
         saveToHistory(); // Record the new blank state as index 0
 
-        setStatus('새 디자인 생성됨');
+        saveToHistory(); // Record the new blank state as index 0
+
+        setStatus(t('msg.newDesign'));
 
         // Sync to backend if available
         if (window.go?.main?.App?.NewDesign) {
@@ -379,7 +400,7 @@ async function newDesign() {
         }
     } catch (e) {
         console.error('newDesign error:', e);
-        setStatus('새로 만들기 실패');
+        setStatus(t('msg.newDesign'));
     }
 }
 
@@ -392,7 +413,7 @@ async function saveDesign() {
         try {
             const path = await window.go.main.App.SaveDesign(defaultFilename);
             if (path) {
-                setStatus('저장됨: ' + path.split(/[\\/]/).pop());
+                setStatus(t('msg.saved') + ': ' + path.split(/[\\/]/).pop());
                 return;
             }
         } catch (e) {
@@ -402,7 +423,7 @@ async function saveDesign() {
 
     // Browser fallback - download as file
     downloadFile(JSON.stringify(state.design, null, 2), defaultFilename, 'application/json');
-    setStatus('저장됨 (다운로드)');
+    setStatus(t('msg.saved'));
 }
 
 async function loadDesign() {
@@ -432,7 +453,7 @@ async function loadDesign() {
             const design = JSON.parse(text);
             applyLoadedDesign(design);
         } catch (err) {
-            setStatus('불러오기 실패: 잘못된 파일 형식');
+            setStatus(t('msg.invalidFile'));
             console.error('Load error:', err);
         }
     };
@@ -505,7 +526,7 @@ function applyLoadedDesign(design) {
     // Re-apply global settings if any?
     // Settings are lazy loaded usually.
 
-    setStatus('불러오기 완료');
+    setStatus(t('msg.loaded'));
 }
 
 function getNextId() {
@@ -541,7 +562,7 @@ async function exportJSON() {
             // Pass the formatted JSON string and default filename to backend
             const path = await window.go.main.App.ExportJSON(jsonStr, defaultFilename);
             if (path) {
-                setStatus('JSON 내보내기 완료');
+                setStatus(t('msg.saved'));
                 return;
             }
         } catch (e) {
@@ -551,7 +572,7 @@ async function exportJSON() {
 
     // Browser fallback
     downloadFile(jsonStr, defaultFilename, 'application/json');
-    setStatus('JSON 내보내기 완료 (다운로드)');
+    setStatus(t('msg.saved'));
 }
 
 function designToJSON(design) {
@@ -628,7 +649,7 @@ async function exportXML() {
         try {
             const path = await window.go.main.App.ExportXML(defaultFilename);
             if (path) {
-                setStatus('XML 내보내기 완료');
+                setStatus(t('msg.saved')); // Using saved as generic success
                 return;
             }
         } catch (e) {
@@ -1078,7 +1099,7 @@ function handleCanvasDrop(e) {
 
 // ===== Element Management =====
 function addElementToCanvas(type, x, y, parentId = null) {
-    const defaults = componentDefaults[type] || { width: 100, height: 40, text: type };
+    const defaults = getComponentDefaults()[type] || { width: 100, height: 40, text: type };
     const id = getNextId();
 
     // Center the element on drop position
@@ -1177,7 +1198,7 @@ function generateDefaultCells(rows, cols) {
     for (let r = 0; r < rows; r++) {
         const row = [];
         for (let c = 0; c < cols; c++) {
-            row.push(r === 0 ? `열${c + 1}` : '');
+            row.push(r === 0 ? `${t('comp.colLabel')}${c + 1}` : '');
         }
         cells.push(row);
     }
@@ -1229,7 +1250,7 @@ function createElementDOM(element) {
             el.style.backgroundColor = 'transparent';
         } else if (!settings.componentBgTransparent && !['button', 'input', 'textarea', 'dropdown'].includes(element.type)) {
             el.style.backgroundColor = settings.componentBg || '#ffffff';
-            if (['label', 'image', 'icon'].includes(element.type)) {
+            if (['label', 'image', 'icon', 'checkbox', 'radio', 'switch', 'tab'].includes(element.type)) {
                 el.style.backgroundColor = 'transparent';
             }
         }
@@ -1257,7 +1278,15 @@ function createElementDOM(element) {
     else if (element.type === 'divider') {
         renderDividerContent(el, element);
     }
-    // Regular elements
+    // Checkbox
+    else if (element.type === 'checkbox') {
+        renderCheckboxContent(el, element);
+    }
+    // Radio
+    else if (element.type === 'radio') {
+        renderRadioContent(el, element);
+    }
+    // Regular elements (Button, Input, Textarea, Dropdown, Labels, etc.) - REVERTED to text-based
     else {
         el.textContent = element.properties?.text || element.type;
     }
@@ -1416,10 +1445,97 @@ function renderSwitchContent(el, element) {
 
     const label = document.createElement('span');
     label.className = 'switch-label';
-    label.textContent = props.text || '스위치';
+    label.textContent = props.text || t('comp.switch');
 
     el.appendChild(track);
     el.appendChild(label);
+}
+
+function renderCheckboxContent(el, element) {
+    el.innerHTML = '';
+    const props = element.properties || {};
+
+    // Wrapper for alignment
+    const wrapper = document.createElement('div');
+    wrapper.className = 'checkbox-group';
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    if (props.checked) input.checked = true; // Future proofing
+
+    const label = document.createElement('label');
+    label.textContent = props.text || t('comp.checkbox');
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(label);
+    el.appendChild(wrapper);
+}
+
+function renderRadioContent(el, element) {
+    el.innerHTML = '';
+    const props = element.properties || {};
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'radio-group';
+
+    const input = document.createElement('input');
+    input.type = 'radio';
+    // We don't name it naturally so they don't actually group in design mode usually, 
+    // or maybe we do want them to? For now, purely visual.
+
+    const label = document.createElement('label');
+    label.textContent = props.text || t('comp.radio');
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(label);
+    el.appendChild(wrapper);
+}
+
+function renderButtonContent(el, element) {
+    el.innerHTML = '';
+    const props = element.properties || {};
+
+    const btn = document.createElement('button');
+    btn.textContent = props.text || t('comp.button'); // Assuming text is stored in properties
+    // If text was direct on element in old versions, handle that? 
+    // New logic puts text in properties.text.
+
+    el.appendChild(btn);
+}
+
+function renderInputContent(el, element) {
+    el.innerHTML = '';
+    const props = element.properties || {};
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = props.text || t('comp.input');
+    input.value = props.value || ''; // Allow value to be set if we add that prop
+
+    el.appendChild(input);
+}
+
+function renderTextareaContent(el, element) {
+    el.innerHTML = '';
+    const props = element.properties || {};
+
+    const textarea = document.createElement('textarea');
+    textarea.placeholder = props.text || t('comp.textarea');
+
+    el.appendChild(textarea);
+}
+
+function renderDropdownContent(el, element) {
+    el.innerHTML = '';
+    const props = element.properties || {};
+
+    const select = document.createElement('select');
+    // Add a dummy option
+    const option = document.createElement('option');
+    option.textContent = props.text || t('comp.dropdown');
+    select.appendChild(option);
+
+    el.appendChild(select);
 }
 
 
@@ -1507,7 +1623,7 @@ function updateElementDOM(element) {
             // However, for some components like Label, Image, we might not want background?
             // Let's exclude some types from default BG?
             // Labels usually transparent. 
-            if (['label', 'image', 'icon'].includes(element.type)) {
+            if (['label', 'image', 'icon', 'checkbox', 'radio', 'switch', 'tab'].includes(element.type)) {
                 el.style.backgroundColor = 'transparent';
             }
         }
@@ -1525,6 +1641,10 @@ function updateElementDOM(element) {
         renderSwitchContent(el, element);
     } else if (element.type === 'divider') {
         renderDividerContent(el, element);
+    } else if (element.type === 'checkbox') {
+        renderCheckboxContent(el, element);
+    } else if (element.type === 'radio') {
+        renderRadioContent(el, element);
     } else if (containerTypes.includes(element.type)) {
         const label = el.querySelector('.container-label');
         if (label) label.textContent = element.properties?.text || element.type;
@@ -2099,7 +2219,7 @@ function setupLayoutEvents() {
             // Reorder check: check if any locked
             const anyLocked = state.selectedElements.some(id => getElementData(id)?.properties?.locked);
             if (anyLocked && (action.startsWith('layer-') || action.startsWith('align-') || action.startsWith('distribute-'))) {
-                setStatus('잠긴 요소가 포함되어 레이아웃을 변경할 수 없습니다.');
+                setStatus(t('msg.locked'));
                 return;
             }
 
@@ -2473,7 +2593,7 @@ function openTableEditor() {
     modal.innerHTML = `
         <div class="modal-content" style="width: 700px; max-width: 95%;">
             <div class="modal-header">
-                <h3>테이블 셀 편집</h3>
+                <h3>${t('table.editTitle')}</h3>
                 <button class="btn-close-modal">&times;</button>
             </div>
             <div class="modal-body">
@@ -2492,8 +2612,8 @@ function openTableEditor() {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" id="modal-cancel">취소</button>
-                <button class="toolbar-btn export-btn" id="modal-save" style="width: 100px; margin-left: 10px;">저장</button>
+                <button class="btn-secondary" id="modal-cancel">${t('btn.cancel')}</button>
+                <button class="toolbar-btn export-btn" id="modal-save" style="width: 100px; margin-left: 10px;">${t('btn.save')}</button>
             </div>
         </div>
     `;
@@ -2540,7 +2660,8 @@ function updateParentSelector() {
     if (!currentId) return;
 
     // Clear options
-    select.innerHTML = '<option value="">(없음 - 윈도우 직속)</option>';
+    // Clear options
+    select.innerHTML = `<option value="">${t('prop.noParent')}</option>`;
 
     // Add container elements as options
     state.design.elements.forEach(el => {
@@ -3142,7 +3263,7 @@ function addTab() {
 
     element.properties.tabs = element.properties.tabs || [];
     const newId = 't' + (element.properties.tabs.length + 1) + '_' + Date.now().toString(36);
-    element.properties.tabs.push({ id: newId, label: `탭 ${element.properties.tabs.length + 1}` });
+    element.properties.tabs.push({ id: newId, label: `${t('comp.tabLabel')} ${element.properties.tabs.length + 1}` });
 
     renderTabList(element);
     updateElementDOM(element);
@@ -3153,7 +3274,7 @@ function addTab() {
 function removeTab(elementId, index) {
     const element = getElementData(elementId);
     if (!element || !element.properties.tabs || element.properties.tabs.length <= 1) {
-        alert('최소 하나의 탭은 있어야 합니다.');
+        alert(t('msg.minTab'));
         return;
     }
 
@@ -3233,7 +3354,7 @@ function toggleSnap() {
     state.snapEnabled = !state.snapEnabled;
     const btn = document.getElementById('btn-snap-toggle');
     if (btn) btn.classList.toggle('active', state.snapEnabled);
-    setStatus(state.snapEnabled ? '스마트 스냅 켜짐' : '스마트 스냅 꺼짐');
+    setStatus(state.snapEnabled ? t('msg.snapOn') : t('msg.snapOff'));
 }
 
 function togglePreview() {
@@ -3248,7 +3369,7 @@ function togglePreview() {
     // Deselect all for better preview if entering
     if (state.isPreviewMode) deselectAll();
 
-    setStatus(state.isPreviewMode ? '프리뷰 모드' : '편집 모드');
+    setStatus(state.isPreviewMode ? t('msg.previewOn') : t('msg.previewOff'));
 }
 
 function moveSelected(dx, dy) {
@@ -3257,7 +3378,7 @@ function moveSelected(dx, dy) {
     // Check if any locked
     const anyLocked = state.selectedElements.some(id => getElementData(id)?.properties?.locked);
     if (anyLocked) {
-        setStatus('잠긴 요소가 포함되어 이동할 수 없습니다.');
+        setStatus(t('msg.locked'));
         return;
     }
 
@@ -3297,7 +3418,7 @@ function updateMultiLocked(e) {
     });
 
     saveToHistory();
-    setStatus(`${state.selectedElements.length}개 요소 잠금 상태 변경됨`);
+    setStatus(t('msg.lockedCount', { count: state.selectedElements.length }));
 }
 
 /**
@@ -3329,9 +3450,9 @@ function setupColorControl(inputId, propertyName, target, defaultValue = '#00000
 
     // 1. Default Button
     const btnDefault = document.createElement('button');
-    btnDefault.textContent = '기본값';
+    btnDefault.textContent = t('color.default');
     btnDefault.className = 'btn-icon-small';
-    btnDefault.title = '프로젝트 설정의 기본값을 사용합니다';
+    btnDefault.title = t('color.defaultTitle');
     btnDefault.onclick = () => {
         if (target.properties) delete target.properties[propertyName];
         else target[propertyName] = null;
@@ -3348,9 +3469,9 @@ function setupColorControl(inputId, propertyName, target, defaultValue = '#00000
 
     // 2. None Button (Transparent)
     const btnNone = document.createElement('button');
-    btnNone.textContent = '없음';
+    btnNone.textContent = t('color.none');
     btnNone.className = 'btn-icon-small';
-    btnNone.title = '색상을 투명으로 설정합니다';
+    btnNone.title = t('color.noneTitle');
     btnNone.onclick = () => {
         if (target.properties) target.properties[propertyName] = 'transparent';
         else target[propertyName] = 'transparent';
@@ -3439,5 +3560,29 @@ function setupColorControl(inputId, propertyName, target, defaultValue = '#00000
     };
 
     input.onchange = () => saveToHistory();
+}
+
+// ===== Language Events (Appended) =====
+function setupLanguageEvents() {
+    const langSelect = document.getElementById('language-select');
+    const btnSave = document.getElementById('btn-save-settings');
+
+    if (langSelect) {
+        langSelect.value = getCurrentLanguage();
+        langSelect.addEventListener('change', (e) => {
+            changeLanguage(e.target.value);
+        });
+    }
+
+    if (btnSave) {
+        btnSave.addEventListener('click', () => {
+            const currentSettings = JSON.parse(localStorage.getItem('designSettings') || '{}');
+            if (langSelect) {
+                currentSettings.language = langSelect.value;
+            }
+            localStorage.setItem('designSettings', JSON.stringify(currentSettings));
+            setStatus(t('msg.saved'));
+        });
+    }
 }
 
