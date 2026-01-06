@@ -147,6 +147,7 @@ function init() {
     setupSettingsEvents();
     setupLayoutEvents();
     setupLanguageEvents();
+    setupTableSettingsEvents();
 
     saveToHistory(); // Record initial blank state (Index 0)
 
@@ -1433,22 +1434,78 @@ function renderTableContent(el, element) {
     const cols = props.cols || 3;
     const cells = props.cells || generateDefaultCells(rows, cols);
 
+    // Initialize column props if missing
+    if (!props.colWidths || props.colWidths.length !== cols) {
+        props.colWidths = new Array(cols).fill(100); // Default 100px
+    }
+    if (!props.colSettings || props.colSettings.length !== cols) {
+        props.colSettings = new Array(cols).fill(null).map(() => ({
+            align: 'center',
+            headerColor: '#2a2a3e' // var(--bg-canvas) approx
+        }));
+    }
+
     const grid = document.createElement('div');
     grid.className = 'table-grid';
-    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    // Use pixel widths from state
+    grid.style.gridTemplateColumns = props.colWidths.map(w => w + 'px').join(' ');
+    grid.style.gridTemplateRows = `repeat(${rows}, auto)`; // Auto height rows
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             const cell = document.createElement('div');
             cell.className = 'table-cell';
-            if (r === 0) cell.classList.add('header');
-            cell.textContent = cells[r]?.[c] || '';
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+
+            // Apply Column Alignment
+            cell.style.justifyContent = getFlexJustify(props.colSettings[c]?.align || 'center');
+
+            // Header specifics
+            if (r === 0) {
+                cell.classList.add('header');
+                const hColor = props.colSettings[c]?.headerColor;
+                if (hColor) cell.style.backgroundColor = hColor;
+
+                // Double click to open settings
+                cell.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    openTableColumnSettings(element.id, c);
+                });
+
+                // Resizer handle
+                const resizer = document.createElement('div');
+                resizer.className = 'resizer';
+                resizer.addEventListener('mousedown', (e) => {
+                    handleColumnResizeStart(e, element.id, c);
+                });
+                cell.appendChild(resizer);
+            }
+
+            // Cell Content (Text)
+            const span = document.createElement('span');
+            span.textContent = cells[r]?.[c] || '';
+            span.style.pointerEvents = 'none'; // Click goes to cell
+            cell.appendChild(span);
+
             grid.appendChild(cell);
         }
     }
 
     el.appendChild(grid);
+
+    // Update total width of the element based on columns (optional, or let grid handle it)
+    // Actually, improved logic: Element width should track table width?
+    // For now, let grid overflow or fit within element. 
+    // Usually table component width should match sum of cols + borders.
+    // Let's update element width to match sum of cols if it differs significantly?
+    // Or just let CSS Grid handle layout within the element box.
+}
+
+function getFlexJustify(align) {
+    if (align === 'left') return 'flex-start';
+    if (align === 'right') return 'flex-end';
+    return 'center';
 }
 
 function renderTabContent(el, element) {
@@ -2168,6 +2225,127 @@ function handleResizeStart(e, position) {
 
     document.addEventListener('mousemove', handleResize);
     document.addEventListener('mouseup', handleResizeEnd);
+}
+
+// ===== Table Column Resizing =====
+let tableResizing = {
+    active: false,
+    elementId: null,
+    colIndex: -1,
+    startX: 0,
+    startWidth: 0
+};
+
+function handleColumnResizeStart(e, elementId, colIndex) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const element = getElementData(elementId);
+    if (!element || !element.properties.colWidths) return;
+
+    tableResizing = {
+        active: true,
+        elementId: elementId,
+        colIndex: colIndex,
+        startX: e.clientX,
+        startWidth: element.properties.colWidths[colIndex]
+    };
+
+    document.body.style.cursor = 'col-resize';
+
+    // Add temporary global listeners
+    document.addEventListener('mousemove', handleColumnResizeMove);
+    document.addEventListener('mouseup', handleColumnResizeEnd);
+}
+
+function handleColumnResizeMove(e) {
+    if (!tableResizing.active) return;
+
+    const delta = (e.clientX - tableResizing.startX) / state.zoom;
+    const newWidth = Math.max(20, tableResizing.startWidth + delta); // Min 20px
+
+    const element = getElementData(tableResizing.elementId);
+    if (element) {
+        element.properties.colWidths[tableResizing.colIndex] = Math.round(newWidth);
+        const domEl = document.getElementById(tableResizing.elementId);
+        if (domEl) renderTableContent(domEl, element);
+
+        const totalW = element.properties.colWidths.reduce((a, b) => a + b, 0);
+        const neededW = totalW + 20;
+        if (neededW > element.width) {
+            element.width = neededW;
+            updateElementShape(tableResizing.elementId);
+        }
+    }
+}
+
+function handleColumnResizeEnd(e) {
+    if (!tableResizing.active) return;
+
+    tableResizing.active = false;
+    document.body.style.cursor = 'default';
+    document.removeEventListener('mousemove', handleColumnResizeMove);
+    document.removeEventListener('mouseup', handleColumnResizeEnd);
+
+    saveToHistory();
+}
+
+// ===== Table Column Settings Modal =====
+let currentTableSettings = {
+    elementId: null,
+    colIndex: -1
+};
+
+function openTableColumnSettings(elementId, colIndex) {
+    const element = getElementData(elementId);
+    if (!element) return;
+
+    currentTableSettings = { elementId, colIndex };
+
+    const settings = element.properties.colSettings[colIndex] || { align: 'center', headerColor: '#2a2a3e' };
+    const width = element.properties.colWidths[colIndex] || 100;
+
+    // Fill modal
+    document.getElementById('table-col-width').value = width;
+    document.getElementById('table-header-color').value = settings.headerColor || '#e0e0e0';
+    document.getElementById('table-col-align').value = settings.align || 'center';
+
+    // Show modal
+    document.getElementById('table-settings-modal').style.display = 'flex';
+}
+
+function setupTableSettingsEvents() {
+    document.getElementById('btn-close-table-settings')?.addEventListener('click', () => {
+        document.getElementById('table-settings-modal').style.display = 'none';
+    });
+
+    document.getElementById('btn-save-table-settings')?.addEventListener('click', () => {
+        const { elementId, colIndex } = currentTableSettings;
+        const element = getElementData(elementId);
+        if (element) {
+            const newWidth = parseInt(document.getElementById('table-col-width').value) || 100;
+            const newColor = document.getElementById('table-header-color').value;
+            const newAlign = document.getElementById('table-col-align').value;
+
+            element.properties.colWidths[colIndex] = newWidth;
+            element.properties.colSettings[colIndex] = {
+                headerColor: newColor,
+                align: newAlign
+            };
+
+            const domEl = document.getElementById(elementId);
+            if (domEl) {
+                renderTableContent(domEl, element);
+                const totalW = element.properties.colWidths.reduce((a, b) => a + b, 0);
+                if (totalW + 20 > element.width) {
+                    element.width = totalW + 20;
+                    updateElementShape(elementId);
+                }
+            }
+            saveToHistory();
+        }
+        document.getElementById('table-settings-modal').style.display = 'none';
+    });
 }
 
 function handleResize(e) {
@@ -3074,11 +3252,17 @@ function showElementProperties() {
         document.getElementById('elem-width').disabled = false;
     }
 
-    // Text alignment buttons
-    const align = element.properties?.textAlign || 'center';
-    document.querySelectorAll('.btn-align').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.align === align);
-    });
+    // Text alignment buttons (Hide for Table)
+    const alignControl = document.querySelector('.btn-align').closest('.property-row');
+    if (element.type === 'table') {
+        if (alignControl) alignControl.style.display = 'none';
+    } else {
+        if (alignControl) alignControl.style.display = '';
+        const align = element.properties?.textAlign || 'center';
+        document.querySelectorAll('.btn-align').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.align === align);
+        });
+    }
 
     // Parent selector
     updateParentSelector();

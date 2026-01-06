@@ -1693,3 +1693,44 @@ input[type="color"]::-webkit-color-swatch {
     border-color: white;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
+
+/* Table specific styles */
+.table-grid {
+    display: grid;
+    width: 100%;
+}
+
+.table-cell {
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    background: var(--bg-secondary);
+    position: relative;
+    /* For resizer positioning */
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.table-cell.header {
+    background: var(--bg-tertiary);
+    /* Default, can be overridden */
+    font-weight: 600;
+    user-select: none;
+}
+
+.table-cell .resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 10;
+}
+
+.table-cell .resizer:hover,
+.table-cell.resizing .resizer {
+    background: var(--accent-primary);
+}
