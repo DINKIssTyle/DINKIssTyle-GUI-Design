@@ -17,6 +17,7 @@ Key focus is on providing an **AI-friendly** output structure, allowing Generati
 - **Tab System**: Advanced tab controls with per-tab child visibility and stretch alignment.
 - **Table Editor**: Built-in editor for table cell contents.
 - **Layer Controls**: Front, Forward, Backward, Back controls for single and multi-selection.
+- **Multi-Select Components**: Select multiple components at once for batch property changes.
 
 ### 3. AI-Ready Export
 - **XML Export**: Generates a structured `<Window>` / `<Components>` XML file designed specifically for LLM context injection. Includes descriptions and hierarchical relationships.
@@ -34,6 +35,7 @@ Key focus is on providing an **AI-friendly** output structure, allowing Generati
   - `Ctrl + D`: Duplicate Selection
   - `Delete`: Remove Selection
   - `Ctrl + Scroll`: Zoom In/Out
+  - `Space Bar`: Pan Canvas
   - Arrow Keys: Move selected elements (blocked during text input)
 - **Zoom**: Canvas zoom support (25% - 200%).
 
@@ -54,6 +56,11 @@ wails build
 ```
 
 ## 📋 Recent Updates (2026.01)
+- **Multi-language Support (i18n)**: Full Korean/English UI localization with instant language switching
+- **Transform-based Canvas Panning**: Smooth panning using CSS transforms, independent of scrollbars
+- **Centered Zooming**: Zoom in/out centered on mouse cursor or viewport center
+- **Spacebar Panning**: Hold Space key to pan canvas freely
+- **Reset Zoom Centering**: Reset zoom places design window at exact center of viewport
 - Fixed parent-child relationship preservation for Tab children on load
 - Added responsive toolbar scroll navigation with left/right arrows
 - Implemented native confirmation dialogs for macOS compatibility
