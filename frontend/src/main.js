@@ -158,6 +158,9 @@ function init() {
 
     updateUndoRedoButtons();
 
+    // Center canvas on startup
+    resetZoom();
+
     setStatus(t('msg.ready'));
 }
 
