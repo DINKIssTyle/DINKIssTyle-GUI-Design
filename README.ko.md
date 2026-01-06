@@ -1,5 +1,10 @@
 # DINKIssTyle GUI Design
 
+<p align="center">
+  <a href="README.md">English</a> | <a href="README.ko.md">한국어</a>
+</p>
+
+
 DINKIssTyle GUI Design은 모던한 플랫 스타일의 GUI 레이아웃을 효율적으로 생성장할 수 있도록 설계된 강력한 드래그 앤 드롭 인터페이스 빌더입니다. [Wails](https://wails.io/)로 구축되어 고성능 Go 백엔드와 유연한 바닐라 자바스크립트 프론트엔드를 결합했습니다.
 
 ![Main Screen](doc/img/Main.png)
@@ -57,6 +62,14 @@ wails dev
 ```bash
 wails build
 ```
+
+**간편 빌드 (Windows):**
+루트 디렉토리의 `build.bat` 파일을 실행하세요. Go/Node.js/Wails 설치 여부를 자동으로 확인하고 애플리케이션을 빌드합니다.
+
+**간편 빌드 (macOS / Linux):**
+터미널에서 `sh build.sh`를 실행하세요. 의존성을 확인(필요 시 Homebrew/apt/dnf로 설치)하고 앱을 빌드합니다.
+
+
 
 ## 📋 최근 업데이트 (2026.01)
 - **다국어 지원 (i18n)**: 한국어/영어 UI 전체 현지화, 즉시 언어 전환 가능

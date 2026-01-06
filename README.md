@@ -1,5 +1,10 @@
 # DINKIssTyle GUI Design
 
+<p align="center">
+  <a href="README.md">English</a> | <a href="README.ko.md">한국어</a>
+</p>
+
+
 DINKIssTyle GUI Design is a powerful, drag-and-drop interface builder designed to create modern, flat-style GUI layouts efficiently. Built with [Wails](https://wails.io/), it combines a high-performance Go backend with a flexible Vanilla JavaScript frontend.
 
 ![Main Screen](doc/img/Main.png)
@@ -57,6 +62,14 @@ To build for production:
 ```bash
 wails build
 ```
+
+**Easy Build (Windows):**
+Simply run `build.bat` in the root directory. It will automatically check for Go/Node.js/Wails dependencies and build the application.
+
+**Easy Build (macOS / Linux):**
+Run `sh build.sh` in the terminal. It checks dependencies (installing via Homebrew/apt/dnf if needed) and builds the app.
+
+
 
 ## 📋 Recent Updates (2026.01)
 - **Multi-language Support (i18n)**: Full Korean/English UI localization with instant language switching
