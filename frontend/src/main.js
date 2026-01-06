@@ -3238,7 +3238,29 @@ function zoomOut() {
 }
 
 function resetZoom() {
-    setZoom(1.0);
+    const wrapper = document.querySelector('.canvas-wrapper');
+    if (!wrapper || !dom.canvas) return;
+
+    const w = wrapper.clientWidth;
+    const h = wrapper.clientHeight;
+
+    // Use actual rendered size for robustness
+    const canvasW = dom.canvas.offsetWidth || 800;
+    const canvasH = dom.canvas.offsetHeight || 600;
+
+    state.zoom = 1.0;
+    state.pan.x = (w - canvasW) / 2;
+    state.pan.y = (h - canvasH) / 2;
+
+    // Safety: prevent NaNs
+    if (isNaN(state.pan.x)) state.pan.x = 0;
+    if (isNaN(state.pan.y)) state.pan.y = 0;
+
+    // Debug log
+    console.log('[resetZoom]', { w, h, canvasW, canvasH, panX: state.pan.x, panY: state.pan.y });
+
+    updateCanvasTransform();
+    updateZoomDisplay();
 }
 
 function updateZoomDisplay() {
@@ -3702,6 +3724,11 @@ function setupLanguageEvents() {
         langSelect.value = getCurrentLanguage();
         langSelect.addEventListener('change', (e) => {
             changeLanguage(e.target.value);
+            // i18n Refresh: Update static UI elements that depend on state names
+            updateToolbarSelection();
+            updateUndoRedoButtons(); // In case tooltips use t()
+            updateCanvasSize(); // Canvas size text uses t()
+            updateElementProperties(); // Refresh properties if selected
         });
     }
 
