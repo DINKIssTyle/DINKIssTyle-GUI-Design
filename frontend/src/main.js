@@ -45,8 +45,22 @@ const state = {
     // Panning
     isPanning: false,
     isPanDragging: false,
-    panStart: { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 }
+    pan: { x: 0, y: 0 },
+    panStart: { x: 0, y: 0 }
 };
+
+function updateCanvasTransform() {
+    // Apply transform to canvas
+    if (!dom.canvas) return; // Guard clause
+    dom.canvas.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
+    dom.canvas.style.transformOrigin = '0 0';
+
+    // Move grid background (canvas-wrapper has the grid)
+    const wrapper = document.querySelector('.canvas-wrapper');
+    if (wrapper) {
+        wrapper.style.backgroundPosition = `${state.pan.x}px ${state.pan.y}px`;
+    }
+}
 
 // ===== DOM Elements =====
 const dom = {
@@ -672,7 +686,7 @@ async function exportXML() {
     // Browser fallback
     const xml = designToXML(state.design);
     downloadFile(xml, defaultFilename, 'application/xml');
-    setStatus('XML 내보내기 완료 (다운로드)');
+    setStatus(t('msg.xmlExported'));
 }
 
 function designToXML(design) {
@@ -871,99 +885,117 @@ function handlePaletteDragEnd(e) {
 }
 
 // ===== Canvas Events =====
+// ===== Canvas Events =====
 function setupCanvasEvents() {
     // Drop events
     dom.canvas.addEventListener('dragover', handleCanvasDragOver);
     dom.canvas.addEventListener('dragleave', handleCanvasDragLeave);
     dom.canvas.addEventListener('drop', handleCanvasDrop);
 
-    // Canvas Mouse events
+    // Canvas Mouse events (Selection start)
     dom.canvas.addEventListener('mousedown', handleCanvasMouseDown);
 
-    // Global click to deselect when clicking outside
-    // Global click to deselect when clicking outside
-    document.addEventListener('mousedown', (e) => {
-        // If clicking on canvas, toolbar, or properties, don't deselect
-        // MODIFIED: Clicking on "canvas-wrapper" (the gray background) SHOULD deselect.
-        // So we check if it's canvas-container/wrapper but NOT the actual canvas or other UI.
+    // Wrapper Mouse events (Panning start)
+    const wrapper = document.querySelector('.canvas-wrapper');
+    if (wrapper) {
+        wrapper.style.overflow = 'hidden'; // Force hidden overflow for transform panning
+        wrapper.addEventListener('mousedown', (e) => {
+            // If clicking wrapper (gray area) and NOT canvas, deselect
+            if (e.target === wrapper) {
+                if (!state.isPanning) deselectAll();
+                handlePanStart(e);
+            }
+        });
+    }
 
-        const isWrapper = e.target.classList.contains('canvas-container') ||
-            e.target.classList.contains('canvas-wrapper');
-
-        // If it's a UI panel, ignore
-        if (e.target.closest('.toolbar') ||
-            e.target.closest('.properties-panel') ||
-            e.target.closest('.modal') ||
-            e.target.closest('.toolbox')) {
-            return;
-        }
-
-        // If clicking inside the canvas (white area) but NOT on an element, handleCanvasMouseDown handles it.
-        // If clicking on the wrapper (gray area), we want to deselect.
-        if (isWrapper && state.selectedElements.length > 0) {
-            deselectAll();
+    // Global Key events (Space for Panning)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === ' ' && !e.repeat && !isInputActive()) {
+            state.isPanning = true;
+            document.body.style.cursor = 'grab';
+            const wrapper = document.querySelector('.canvas-wrapper');
+            if (wrapper) wrapper.style.cursor = 'grab';
         }
     });
 
-    // Key up for panning
     document.addEventListener('keyup', (e) => {
         if (e.key === ' ') {
             state.isPanning = false;
             state.isPanDragging = false;
+            document.body.style.cursor = 'default';
             const wrapper = document.querySelector('.canvas-wrapper');
             if (wrapper) wrapper.style.cursor = 'default';
         }
     });
 
-    // Pan Dragging Events
-    const wrapper = document.querySelector('.canvas-wrapper');
-    if (wrapper) {
-        wrapper.addEventListener('mousedown', (e) => {
-            if (state.isPanning) {
-                state.isPanDragging = true;
-                state.panStart.x = e.clientX;
-                state.panStart.y = e.clientY;
-                state.panStart.scrollLeft = wrapper.scrollLeft;
-                state.panStart.scrollTop = wrapper.scrollTop;
-                wrapper.style.cursor = 'grabbing';
-                e.preventDefault(); // Prevent text selection
-            } else if (e.target === wrapper && state.selectedElements.length > 0) {
-                // Also handle simple click on wrapper for deselection if needed here, 
-                // but global listener covers it.
-            }
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (state.isPanDragging) {
-                const dx = e.clientX - state.panStart.x;
-                const dy = e.clientY - state.panStart.y;
-                wrapper.scrollLeft = state.panStart.scrollLeft - dx;
-                wrapper.scrollTop = state.panStart.scrollTop - dy;
-            }
-        });
-
-        window.addEventListener('mouseup', () => {
-            if (state.isPanDragging) {
-                state.isPanDragging = false;
-                if (state.isPanning) wrapper.style.cursor = 'grab';
-                else wrapper.style.cursor = 'default';
-            }
-        });
-    }
-
-    // Global mouse events for dragging elements or selection box
-    // Note: mouseup on canvas is handled by global mouseup
+    // Global Mouse Move & Up
     document.addEventListener('mousemove', (e) => {
-        if (state.isDragging) handleElementDrag(e);
-        if (state.isSelecting) handleCanvasMouseMove(e);
+        if (state.isPanDragging) handlePanMove(e);
+        else if (state.isDragging) handleElementDrag(e);
+        else if (state.isSelecting) handleCanvasMouseMove(e);
     });
+
     document.addEventListener('mouseup', (e) => {
-        if (state.isDragging) handleElementDragEnd(e);
-        if (state.isSelecting) handleCanvasMouseUp(e);
+        if (state.isPanDragging) handlePanEnd(e);
+        else if (state.isDragging) handleElementDragEnd(e);
+        else if (state.isSelecting) handleCanvasMouseUp(e);
     });
+
+    // Mouse Wheel Zoom
+    dom.canvas.addEventListener('wheel', handleWheel, { passive: false });
+    if (wrapper) wrapper.addEventListener('wheel', handleWheel, { passive: false });
+}
+
+function handlePanStart(e) {
+    if (state.isPanning || e.button === 1) { // Space+LeftClick or MiddleClick
+        state.isPanDragging = true;
+        state.panStart = { x: e.clientX, y: e.clientY };
+        document.body.style.cursor = 'grabbing';
+        const wrapper = document.querySelector('.canvas-wrapper');
+        if (wrapper) wrapper.style.cursor = 'grabbing';
+        e.preventDefault();
+    }
+}
+
+function handlePanMove(e) {
+    if (!state.isPanDragging) return;
+
+    const dx = e.clientX - state.panStart.x;
+    const dy = e.clientY - state.panStart.y;
+
+    state.pan.x += dx;
+    state.pan.y += dy;
+    state.panStart = { x: e.clientX, y: e.clientY };
+
+    updateCanvasTransform();
+}
+
+function handlePanEnd(e) {
+    if (!state.isPanDragging) return;
+
+    state.isPanDragging = false;
+    const cursor = state.isPanning ? 'grab' : 'default';
+    document.body.style.cursor = cursor;
+    const wrapper = document.querySelector('.canvas-wrapper');
+    if (wrapper) wrapper.style.cursor = cursor;
+}
+
+function handleWheel(e) {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        // Pass mouse position as center for zoom
+        setZoom(state.zoom + delta, { x: e.clientX, y: e.clientY });
+    }
 }
 
 function handleCanvasMouseDown(e) {
+    // If panning, let pan handler take over
+    if (state.isPanning) {
+        handlePanStart(e);
+        return;
+    }
+
     if (e.target !== dom.canvas) return;
 
     // Deselect all unless shift is pressed
@@ -1065,7 +1097,7 @@ function alignElements(direction) {
     });
 
     saveToHistory();
-    setStatus(`${direction} 정렬 완료`);
+    setStatus(t('msg.aligned', { direction: t('align.' + direction) }));
 }
 
 function distributeElements(axis) {
@@ -1107,7 +1139,7 @@ function distributeElements(axis) {
     }
 
     saveToHistory();
-    setStatus(`${axis === 'h' ? '가로' : '세로'} 분포 완료`);
+    setStatus(t('msg.distributed', { axis: axis === 'h' ? t('dist.h') : t('dist.v') }));
 }
 
 function reorderLayers(action) {
@@ -1138,7 +1170,8 @@ function reorderLayers(action) {
 
     selection.forEach(el => updateElementDOM(el));
     saveToHistory();
-    setStatus(`레이어 ${action} 변경 완료`);
+    saveToHistory();
+    setStatus(t('msg.layerChanged', { action: t('layer.' + action) }));
 }
 
 function handleCanvasDragOver(e) {
@@ -1258,7 +1291,7 @@ function addElementToCanvas(type, x, y, parentId = null) {
 
     selectElement(id);
     saveToHistory();
-    setStatus(`${type} 추가됨`);
+    setStatus(t('msg.added', { type: type }));
 }
 
 function generateDefaultCells(rows, cols) {
@@ -1945,12 +1978,12 @@ function deselectAll() {
 
 function updateToolbarSelection() {
     if (state.selectedElements.length > 1) {
-        setStatus(`${state.selectedElements.length}개 요소 선택됨`);
+        setStatus(t('msg.selected', { count: state.selectedElements.length }));
     } else if (state.selectedElements.length === 1) {
         const el = getElementData(state.selectedElements[0]);
-        setStatus(`선택됨: ${el.name || el.type}`);
+        setStatus(t('msg.selectedSingle', { name: el.name || el.type }));
     } else {
-        setStatus('준비됨');
+        setStatus(t('msg.ready'));
     }
 }
 
@@ -1974,7 +2007,7 @@ function deleteSelectedElements() {
     state.selectedElements = [];
     hideElementProperties();
     updateToolbarSelection();
-    setStatus(`${selection.length}개 요소 삭제됨`);
+    setStatus(t('msg.deleted', { count: selection.length }));
 }
 
 function duplicateSelectedElements() {
@@ -2003,7 +2036,7 @@ function duplicateSelectedElements() {
     deselectAll();
     newIds.forEach(id => selectElement(id, true));
 
-    setStatus(`${selection.length}개 요소 복제됨`);
+    setStatus(t('msg.duplicated', { count: selection.length }));
     saveToHistory();
 }
 
@@ -2512,7 +2545,7 @@ function saveSettings() {
 
     closeSettingsModal();
     saveToHistory();
-    setStatus('설정이 저장되었습니다');
+    setStatus(t('msg.settingsSaved'));
 }
 
 function generatePalette() {
@@ -3041,7 +3074,7 @@ function updateMultiStyle(e) {
     });
 
     saveToHistory();
-    setStatus(`${state.selectedElements.length}개 요소 스타일 일괄 변경됨`);
+    setStatus(t('msg.styleChanged', { count: state.selectedElements.length }));
 }
 
 function updateMultiParent(e) {
@@ -3075,7 +3108,7 @@ function updateMultiParent(e) {
     });
 
     saveToHistory();
-    setStatus(`${state.selectedElements.length}개 요소 부모 일괄 변경됨`);
+    setStatus(t('msg.parentChanged', { count: state.selectedElements.length }));
 }
 
 function updateElementProperties() {
@@ -3157,10 +3190,42 @@ function setStatus(text) {
 }
 
 // ===== Zoom Functions =====
-function setZoom(level) {
-    state.zoom = Math.max(0.25, Math.min(2.0, level));
-    dom.canvas.style.transform = `scale(${state.zoom})`;
-    dom.canvas.style.transformOrigin = 'top left';
+function setZoom(level, center) {
+    const oldZoom = state.zoom;
+    let newZoom = parseFloat(level);
+
+    if (isNaN(newZoom)) return;
+    if (newZoom < 0.1) newZoom = 0.1;
+    if (newZoom > 5.0) newZoom = 5.0;
+
+    // Calculate center point in wrapper coordinates
+    let cx, cy;
+    const wrapper = document.querySelector('.canvas-wrapper');
+    const rect = wrapper.getBoundingClientRect();
+
+    if (center) {
+        cx = center.x - rect.left;
+        cy = center.y - rect.top;
+    } else {
+        cx = rect.width / 2;
+        cy = rect.height / 2;
+    }
+
+    // World coordinates of the center point (before zoom)
+    // equation: screenX = worldX * zoom + panX
+    // worldX = (screenX - panX) / zoom
+    const wx = (cx - state.pan.x) / oldZoom;
+    const wy = (cy - state.pan.y) / oldZoom;
+
+    // Update zoom
+    state.zoom = newZoom;
+
+    // Calculate new pan to keep world center at screen center
+    // newPanX = screenX - worldX * newZoom
+    state.pan.x = cx - wx * newZoom;
+    state.pan.y = cy - wy * newZoom;
+
+    updateCanvasTransform();
     updateZoomDisplay();
 }
 
@@ -3189,18 +3254,6 @@ function setupZoomEvents() {
     if (zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
     if (zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
     if (zoomResetBtn) zoomResetBtn.addEventListener('click', resetZoom);
-
-    // Mouse wheel zoom (Ctrl + scroll)
-    dom.canvas?.parentElement?.addEventListener('wheel', (e) => {
-        if (e.ctrlKey) {
-            e.preventDefault();
-            if (e.deltaY < 0) {
-                zoomIn();
-            } else {
-                zoomOut();
-            }
-        }
-    }, { passive: false });
 }
 
 // ===== History (Undo/Redo) =====
@@ -3240,7 +3293,7 @@ function undo() {
     if (state.historyIndex > 0) {
         state.historyIndex--;
         restoreFromHistory();
-        setStatus('실행 취소');
+        setStatus(t('msg.undo'));
     }
 }
 
@@ -3248,7 +3301,7 @@ function redo() {
     if (state.historyIndex < state.history.length - 1) {
         state.historyIndex++;
         restoreFromHistory();
-        setStatus('다시 실행');
+        setStatus(t('msg.redo'));
     }
 }
 

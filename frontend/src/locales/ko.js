@@ -140,6 +140,8 @@ export default {
     "prop.distribute": "분포 (Distribute)",
     "dist.horiz": "가로 간격 동일하게",
     "dist.vert": "세로 간격 동일하게",
+    "dist.h": "가로",
+    "dist.v": "세로",
     "prop.batchChange": "일괄 변경",
     "prop.commonStyle": "공통 스타일",
     "prop.noChange": "(변경 없음)",
@@ -185,5 +187,17 @@ export default {
     "msg.exportJson": "JSON 파일 내보내기 완료",
     "msg.exportXml": "XML 파일 내보내기 완료",
     "msg.undo": "실행 취소 완료",
-    "msg.redo": "다시 실행 완료"
+    "msg.redo": "다시 실행 완료",
+    "msg.deleted": "{count}개 요소 삭제됨",
+    "msg.aligned": "{direction} 정렬 완료",
+    "msg.distributed": "{axis} 분포 완료",
+    "msg.settingsSaved": "설정이 저장되었습니다",
+    "msg.duplicated": "{count}개 요소 복제됨",
+    "msg.styleChanged": "{count}개 요소 스타일 일괄 변경됨",
+    "msg.parentChanged": "{count}개 요소 부모 일괄 변경됨",
+    "msg.xmlExported": "XML 내보내기 완료 (다운로드)",
+    "msg.jsonExported": "JSON 내보내기 완료",
+    "msg.selected": "{count}개 요소 선택됨",
+    "msg.selectedSingle": "선택됨: {name}",
+    "msg.ready": "준비됨"
 };
