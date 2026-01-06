@@ -2,6 +2,7 @@ export default {
     // Toolbar
     "toolbar.new": "새로 만들기",
     "toolbar.save": "저장",
+    "toolbar.saveAs": "다른 이름으로 저장",
     "toolbar.load": "불러오기",
     "toolbar.undo": "취소",
     "toolbar.redo": "다시",

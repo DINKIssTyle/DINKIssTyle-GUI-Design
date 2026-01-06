@@ -2,6 +2,7 @@ export default {
     // Toolbar
     "toolbar.new": "New",
     "toolbar.save": "Save",
+    "toolbar.saveAs": "Save As",
     "toolbar.load": "Load",
     "toolbar.undo": "Undo",
     "toolbar.redo": "Redo",

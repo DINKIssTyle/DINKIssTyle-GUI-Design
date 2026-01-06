@@ -318,6 +318,7 @@ function setupToolbarEvents() {
 
     safeAdd('btn-new', 'click', newDesign);
     safeAdd('btn-save', 'click', saveDesign);
+    safeAdd('btn-save-as', 'click', saveDesignAs);
     safeAdd('btn-load', 'click', loadDesign);
     safeAdd('btn-undo', 'click', undo);
     safeAdd('btn-redo', 'click', redo);
@@ -453,6 +454,26 @@ async function saveDesign() {
     // Browser fallback - download as file
     downloadFile(JSON.stringify(state.design, null, 2), defaultFilename, 'application/json');
     setStatus(t('msg.saved'));
+}
+
+async function saveDesignAs() {
+    syncDesignToBackend();
+    const defaultFilename = getSafeFilename() + '.guidesign';
+
+    if (window.go?.main?.App?.SaveDesignAs) {
+        try {
+            const path = await window.go.main.App.SaveDesignAs(defaultFilename);
+            if (path) {
+                setStatus(t('msg.saved') + ': ' + path.split(/[\\/]/).pop());
+            }
+        } catch (e) {
+            console.error('Save As failed:', e);
+            setStatus('Save As failed: ' + e);
+        }
+    } else {
+        // Fallback for browser (same as save since browser always prompts download)
+        saveDesign();
+    }
 }
 
 async function loadDesign() {
