@@ -2484,6 +2484,7 @@ function setupPropertyEvents() {
     safeAdd('elem-y', 'input', updateElementFromInput);
     safeAdd('elem-width', 'input', updateElementFromInput);
     safeAdd('elem-height', 'input', updateElementFromInput);
+    safeAdd('btn-fit-content', 'click', fitToContent);
     safeAdd('elem-text', 'input', updateElementFromInput);
     safeAdd('elem-style', 'change', updateElementFromInput);
 
@@ -4010,3 +4011,121 @@ function setupLanguageEvents() {
     }
 }
 
+
+// Fit Frame to Content
+function fitToContent() {
+    if (state.selectedElements.length !== 1) return;
+    const id = state.selectedElements[0];
+    const element = getElementData(id);
+    const domEl = document.getElementById(id);
+    if (!element || !domEl) return;
+
+    let newWidth = 0;
+    let newHeight = 0;
+
+    // Logic per type
+    if (element.type === 'table') {
+        const grid = domEl.querySelector('.table-grid');
+        if (grid) {
+            // For width, sum of columns
+            const colWidths = element.properties.colWidths || [];
+            if (colWidths.length > 0) {
+                newWidth = colWidths.reduce((a, b) => a + b, 0);
+            } else {
+                // Fallback if no colWidths
+                newWidth = grid.offsetWidth;
+            }
+            // Add border/padding compensation? 
+            // The grid usually matches column widths exactly.
+            // Element width usually includes border.
+            // Let's add 2px for safety borders.
+            newWidth += 2;
+
+            // For height, use scrollHeight of grid to capture all rows
+            newHeight = grid.scrollHeight;
+            newHeight += 2;
+        }
+    } else if (['tab', 'section'].includes(element.type)) {
+        // Container fit logic
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let hasChildren = false;
+
+        state.design.elements.forEach(opt => {
+            if (opt.parentId === id) {
+                hasChildren = true;
+                minX = Math.min(minX, opt.x);
+                minY = Math.min(minY, opt.y);
+                maxX = Math.max(maxX, opt.x + opt.width);
+                maxY = Math.max(maxY, opt.y + opt.height);
+            }
+        });
+
+        if (hasChildren) {
+            const padding = 20;
+            // Update position to minX - padding
+            const newX = minX - padding;
+            const newY = minY - padding;
+
+            // Update width/height to enclose
+            newWidth = (maxX - minX) + (padding * 2);
+            newHeight = (maxY - minY) + (padding * 2);
+
+            element.x = newX;
+            element.y = newY;
+            document.getElementById('elem-x').value = element.x;
+            document.getElementById('elem-y').value = element.y;
+
+            const elDOM = document.getElementById(id);
+            if (elDOM) {
+                elDOM.style.left = element.x + 'px';
+                elDOM.style.top = element.y + 'px';
+            }
+
+        } else {
+            return;
+        }
+
+    } else {
+        // Text/Simple component fit logic
+        // Reset styles temporarily to measure natural size
+        const originalW = domEl.style.width;
+        const originalH = domEl.style.height;
+        const originalWS = domEl.style.whiteSpace;
+
+        domEl.style.width = 'auto';
+        domEl.style.height = 'auto';
+        domEl.style.whiteSpace = 'nowrap';
+
+        if (element.type === 'textarea' || element.type === 'multi-line' || (element.type === 'label' && element.properties.text && element.properties.text.includes('\n'))) {
+            domEl.style.whiteSpace = 'normal';
+        }
+
+        newWidth = domEl.offsetWidth;
+        newHeight = domEl.offsetHeight;
+
+        // Restore styles
+        domEl.style.width = originalW;
+        domEl.style.height = originalH;
+        domEl.style.whiteSpace = originalWS;
+
+        // Add padding buffers for inputs
+        if (['button', 'input'].includes(element.type)) {
+            newWidth += 10;
+        }
+    }
+
+    if (newWidth > 0 && newHeight > 0) {
+        element.width = Math.ceil(newWidth);
+        element.height = Math.ceil(newHeight);
+
+        updateElementDOM(element);
+
+        // Refresh property panel inputs
+        document.getElementById('elem-width').value = element.width;
+        document.getElementById('elem-height').value = element.height;
+
+        showElementProperties();
+
+        saveToHistory();
+    }
+}

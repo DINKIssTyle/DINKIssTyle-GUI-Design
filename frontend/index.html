@@ -250,14 +250,16 @@
                         </div>
                     </div>
                     <div class="property-row-group">
-                        <div class="property-row half">
-                            <label data-i18n="prop.width">너비</label>
-                            <input type="number" id="elem-width" min="20" />
+                        <div class="input-group">
+                            <label for="elem-width" data-i18n="prop.width">너비</label>
+                            <input type="number" id="elem-width" />
                         </div>
-                        <div class="property-row half">
-                            <label data-i18n="prop.height">높이</label>
-                            <input type="number" id="elem-height" min="20" />
+                        <div class="input-group">
+                            <label for="elem-height" data-i18n="prop.height">높이</label>
+                            <input type="number" id="elem-height" />
                         </div>
+                        <button id="btn-fit-content" class="icon-btn tool-btn" data-i18n-title="prop.fitToContent"
+                            style="width: 30px; height: 35px; padding: 2px; margin-bottom: 1px;">⤢</button>
                     </div>
                     <div class="property-row">
                         <label data-i18n="prop.text">텍스트</label>

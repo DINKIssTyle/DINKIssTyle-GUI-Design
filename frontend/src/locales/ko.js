@@ -58,6 +58,7 @@ export default {
     "prop.windowDescPlace": "이 윈도우의 목적과 기능을 설명하세요 (AI 전달용)",
     "prop.width": "너비",
     "prop.height": "높이",
+    "prop.fitToContent": "콘텐츠에 프레임 맞춤",
     "prop.flexible": "플렉시블 크기",
     "prop.bgColor": "배경 색상",
 

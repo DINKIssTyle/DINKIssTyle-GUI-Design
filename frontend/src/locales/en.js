@@ -58,6 +58,7 @@ export default {
     "prop.windowDescPlace": "Describe the purpose and function (for AI)",
     "prop.width": "Width",
     "prop.height": "Height",
+    "prop.fitToContent": "Fit Frame to Content",
     "prop.flexible": "Flexible Size",
     "prop.bgColor": "Background Color",
 

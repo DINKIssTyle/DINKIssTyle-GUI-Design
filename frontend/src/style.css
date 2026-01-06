@@ -738,7 +738,8 @@ body {
     margin-bottom: 12px;
 }
 
-.property-row label {
+.property-row label,
+.input-group label {
     display: block;
     font-size: 12px;
     font-weight: 500;
@@ -748,7 +749,8 @@ body {
 
 .property-row input,
 .property-row select,
-.property-row textarea {
+.property-row textarea,
+.input-group input {
     width: 100%;
     padding: 8px 10px;
     background: var(--bg-tertiary);
@@ -762,7 +764,8 @@ body {
 
 .property-row input:focus,
 .property-row select:focus,
-.property-row textarea:focus {
+.property-row textarea:focus,
+.input-group input:focus {
     outline: none;
     border-color: var(--accent-primary);
 }
@@ -780,6 +783,13 @@ body {
 .property-row-group {
     display: flex;
     gap: 8px;
+    align-items: flex-end;
+    /* Align inputs and button to bottom */
+}
+
+.input-group {
+    flex: 1;
+    min-width: 0;
 }
 
 .property-row.half {
