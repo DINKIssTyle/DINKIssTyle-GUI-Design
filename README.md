@@ -2,6 +2,9 @@
 
 DINKIssTyle GUI Design is a powerful, drag-and-drop interface builder designed to create modern, flat-style GUI layouts efficiently. Built with [Wails](https://wails.io/), it combines a high-performance Go backend with a flexible Vanilla JavaScript frontend.
 
+![Main Screen](doc/img/Main.png)
+
+
 Key focus is on providing an **AI-friendly** output structure, allowing Generative AI models to easily understand and replicate the designed layouts.
 
 ## 🚀 Key Features
