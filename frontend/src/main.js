@@ -41,7 +41,11 @@ const state = {
     historyIndex: -1,
     maxHistory: 50,
     // Clipboard
-    clipboard: null
+    clipboard: null,
+    // Panning
+    isPanning: false,
+    isPanDragging: false,
+    panStart: { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 }
 };
 
 // ===== DOM Elements =====
@@ -166,6 +170,14 @@ function handleKeyDown(e) {
     }
 
     switch (e.key.toLowerCase()) {
+        case ' ':
+            if (!typing) {
+                e.preventDefault();
+                state.isPanning = true;
+                const wrapper = document.querySelector('.canvas-wrapper');
+                if (wrapper) wrapper.style.cursor = 'grab';
+            }
+            break;
         case 'arrowup':
             if (typing) break;
             e.preventDefault();
@@ -869,19 +881,75 @@ function setupCanvasEvents() {
     dom.canvas.addEventListener('mousedown', handleCanvasMouseDown);
 
     // Global click to deselect when clicking outside
+    // Global click to deselect when clicking outside
     document.addEventListener('mousedown', (e) => {
         // If clicking on canvas, toolbar, or properties, don't deselect
-        if (e.target.closest('.canvas-container') ||
-            e.target.closest('.toolbar') ||
+        // MODIFIED: Clicking on "canvas-wrapper" (the gray background) SHOULD deselect.
+        // So we check if it's canvas-container/wrapper but NOT the actual canvas or other UI.
+
+        const isWrapper = e.target.classList.contains('canvas-container') ||
+            e.target.classList.contains('canvas-wrapper');
+
+        // If it's a UI panel, ignore
+        if (e.target.closest('.toolbar') ||
             e.target.closest('.properties-panel') ||
             e.target.closest('.modal') ||
             e.target.closest('.toolbox')) {
             return;
         }
-        if (state.selectedElements.length > 0) {
+
+        // If clicking inside the canvas (white area) but NOT on an element, handleCanvasMouseDown handles it.
+        // If clicking on the wrapper (gray area), we want to deselect.
+        if (isWrapper && state.selectedElements.length > 0) {
             deselectAll();
         }
     });
+
+    // Key up for panning
+    document.addEventListener('keyup', (e) => {
+        if (e.key === ' ') {
+            state.isPanning = false;
+            state.isPanDragging = false;
+            const wrapper = document.querySelector('.canvas-wrapper');
+            if (wrapper) wrapper.style.cursor = 'default';
+        }
+    });
+
+    // Pan Dragging Events
+    const wrapper = document.querySelector('.canvas-wrapper');
+    if (wrapper) {
+        wrapper.addEventListener('mousedown', (e) => {
+            if (state.isPanning) {
+                state.isPanDragging = true;
+                state.panStart.x = e.clientX;
+                state.panStart.y = e.clientY;
+                state.panStart.scrollLeft = wrapper.scrollLeft;
+                state.panStart.scrollTop = wrapper.scrollTop;
+                wrapper.style.cursor = 'grabbing';
+                e.preventDefault(); // Prevent text selection
+            } else if (e.target === wrapper && state.selectedElements.length > 0) {
+                // Also handle simple click on wrapper for deselection if needed here, 
+                // but global listener covers it.
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (state.isPanDragging) {
+                const dx = e.clientX - state.panStart.x;
+                const dy = e.clientY - state.panStart.y;
+                wrapper.scrollLeft = state.panStart.scrollLeft - dx;
+                wrapper.scrollTop = state.panStart.scrollTop - dy;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (state.isPanDragging) {
+                state.isPanDragging = false;
+                if (state.isPanning) wrapper.style.cursor = 'grab';
+                else wrapper.style.cursor = 'default';
+            }
+        });
+    }
 
     // Global mouse events for dragging elements or selection box
     // Note: mouseup on canvas is handled by global mouseup
@@ -2748,18 +2816,28 @@ function updateCanvasSize() {
 
     if (flexible) {
         dom.canvas.classList.add('flexible');
-        dom.canvas.style.width = '';
-        dom.canvas.style.height = '';
-        dom.canvasMode.textContent = '플렉시블';
+        dom.canvas.style.width = '100%';
+        dom.canvas.style.height = '100%';
+        dom.canvasMode.textContent = t('canvas.flexibleSize');
+        dom.canvasMode.setAttribute('data-i18n', 'canvas.flexibleSize');
+        dom.canvasSize.style.display = 'none';
     } else {
         dom.canvas.classList.remove('flexible');
         dom.canvas.style.width = width + 'px';
         dom.canvas.style.height = height + 'px';
-        dom.canvasMode.textContent = '고정 크기';
+        dom.canvasMode.textContent = t('canvas.fixedSize');
+        dom.canvasMode.setAttribute('data-i18n', 'canvas.fixedSize');
+        dom.canvasSize.style.display = 'inline';
     }
 
     dom.canvasSize.textContent = `${width} × ${height}`;
     dom.canvas.style.backgroundColor = state.design.canvas.bgColor || '#2a2a3e';
+
+    // Update guides position
+    if (flexible) {
+        if (dom.guideH) dom.guideH.style.width = '100%';
+        if (dom.guideV) dom.guideV.style.height = '100%';
+    }
 }
 
 function updateCanvasFromState() {
